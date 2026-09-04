@@ -9,6 +9,11 @@ final onboardingRepositoryProvider = Provider((ref) {
   return OnboardingRepository(LocalStorageService());
 });
 
+/// 프로필 탭 상단의 "내 정보" 카드에 쓰인다.
+final guardianProfileProvider = FutureProvider<GuardianProfile?>((ref) {
+  return ref.watch(onboardingRepositoryProvider).getGuardianProfile();
+});
+
 /// 임시로 폼 입력값을 들고 있는 상태.
 ///
 /// 온보딩은 "보호자 정보 화면 -> 자녀 정보 화면 -> 페어링 화면"처럼 여러 화면에
@@ -31,6 +36,11 @@ class OnboardingActions {
 
   Future<void> completePairing() {
     return _ref.read(onboardingRepositoryProvider).markPairingComplete();
+  }
+
+  Future<void> logout() async {
+    await _ref.read(onboardingRepositoryProvider).reset();
+    _ref.invalidate(guardianProfileProvider);
   }
 }
 

@@ -28,7 +28,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
     final dateKey = DateFormat('yyyy-MM-dd').format(selectedDay);
-    context.push('/calendar/$dateKey/routines');
+    context.push('/calendar/$dateKey');
   }
 
   @override

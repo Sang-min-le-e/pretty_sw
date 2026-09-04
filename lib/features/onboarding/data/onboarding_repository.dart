@@ -53,6 +53,13 @@ class OnboardingRepository {
     await _mergeProfile({'isPairingComplete': true});
   }
 
+  /// 프로필 탭의 "로그아웃" 버튼에서 호출한다. 저장된 보호자/자녀 정보와
+  /// 페어링 완료 여부를 전부 지워서, 다음 실행 때 온보딩부터 다시 시작하게 만든다.
+  Future<void> reset() async {
+    final box = await _box;
+    await box.delete(_profileKey);
+  }
+
   Future<Map<dynamic, dynamic>?> _readProfile() async {
     final box = await _box;
     return box.get(_profileKey);

@@ -1,64 +1,69 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/onboarding/presentation/child_info_screen.dart';
 import '../features/onboarding/presentation/device_pairing_screen.dart';
 import '../features/onboarding/presentation/guardian_info_screen.dart';
 import '../features/onboarding/presentation/social_login_screen.dart';
+import '../features/profile/presentation/profile_screen.dart';
 import '../features/routine/presentation/calendar_screen.dart';
-import '../features/routine/presentation/dashboard_screen.dart';
-import '../features/routine/presentation/routine_registration_screen.dart';
+import '../features/routine/presentation/day_routine_screen.dart';
+import '../features/routine/presentation/home_screen.dart';
 import '../features/watch_connection/presentation/watch_connection_screen.dart';
+import 'root_shell.dart';
 
-/// 라우트 구조는 Figma 기획의 화면 번호를 그대로 따라간다.
+/// 라우트 구조는 크게 두 부류로 나뉜다.
 ///
-///  /onboarding/*        1. 초기 설정 (소셜 로그인 -> 보호자 -> 자녀 -> 페어링)
-///  /                     4. 내 기기(메인창) = 대시보드
-///  /calendar             루틴 등록의 시작점인 캘린더
-///  /calendar/:date/routines   2. 루틴 등록 (특정 날짜의 빅/스몰루틴 관리)
-///  /watch-connection     대시보드에서 언제든 다시 들어갈 수 있는 워치 재연결 화면
-///
-/// [initialLocation]을 함수 인자로 받는 이유: 온보딩을 이미 끝낸 사용자가
-/// 앱을 다시 켰을 때는 로그인 화면부터 또 보여주면 안 되기 때문이다.
-/// main.dart에서 Hive에 저장된 "온보딩 완료 여부"를 먼저 확인한 뒤, 그 결과에
-/// 따라 시작 위치를 '/onboarding/social-login' 또는 '/'로 정해서 넘겨준다.
+/// 1) 온보딩(`/onboarding/*`)과 워치 재연결(`/watch-connection`)은 하단 탭바가
+///    없는 "전체 화면" 흐름이라 `StatefulShellRoute` 바깥의 평범한 `GoRoute`로 둔다.
+/// 2) 홈/캘린더/알림/프로필은 목업에서 하단 탭바가 항상 붙어있던 4개 화면이라
+///    `StatefulShellRoute.indexedStack`으로 묶었다. `RootShell`(app/root_shell.dart)이
+///    이 4개를 감싸는 `Scaffold`+`NavigationBar` 역할을 한다.
+GoRoute _onboardingRoute(String path, Widget Function(BuildContext, GoRouterState) builder) {
+  return GoRoute(path: path, builder: builder);
+}
+
 GoRouter buildAppRouter({required String initialLocation}) {
   return GoRouter(
     initialLocation: initialLocation,
     routes: [
-      GoRoute(
-        path: '/onboarding/social-login',
-        builder: (context, state) => const SocialLoginScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/guardian-info',
-        builder: (context, state) => const GuardianInfoScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/child-info',
-        builder: (context, state) => const ChildInfoScreen(),
-      ),
-      GoRoute(
-        path: '/onboarding/device-pairing',
-        builder: (context, state) => const DevicePairingScreen(),
-      ),
-      GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
-      GoRoute(
-        path: '/calendar',
-        builder: (context, state) => const CalendarScreen(),
-      ),
-      GoRoute(
-        path: '/calendar/:date/routines',
-        builder: (context, state) {
-          // path param은 항상 String으로 들어오기 때문에, 화면 쪽에서 쓰기 편하도록
-          // 여기서 DateTime으로 한 번 파싱해서 넘겨준다. (yyyy-MM-dd 형식 약속은
-          // CalendarScreen에서 DateFormat으로 만들 때와 여기가 반드시 맞아야 한다.)
-          final date = DateTime.parse(state.pathParameters['date']!);
-          return RoutineRegistrationScreen(date: date);
-        },
-      ),
-      GoRoute(
-        path: '/watch-connection',
-        builder: (context, state) => const WatchConnectionScreen(),
+      _onboardingRoute('/onboarding/social-login', (context, state) => const SocialLoginScreen()),
+      _onboardingRoute('/onboarding/guardian-info', (context, state) => const GuardianInfoScreen()),
+      _onboardingRoute('/onboarding/child-info', (context, state) => const ChildInfoScreen()),
+      _onboardingRoute('/onboarding/device-pairing', (context, state) => const DevicePairingScreen()),
+      GoRoute(path: '/watch-connection', builder: (context, state) => const WatchConnectionScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => RootShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => const HomeScreen())]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/calendar',
+                builder: (context, state) => const CalendarScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':date',
+                    builder: (context, state) {
+                      // CalendarScreen이 yyyy-MM-dd 형식으로 만들어 넘겨준 문자열을
+                      // 다시 DateTime으로 되돌린다. 이 형식 약속이 깨지면 여기서
+                      // 바로 예외가 나서 실수를 빨리 알아챌 수 있다.
+                      final date = DateTime.parse(state.pathParameters['date']!);
+                      return DayRoutineScreen(date: date);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
+          ),
+        ],
       ),
     ],
   );

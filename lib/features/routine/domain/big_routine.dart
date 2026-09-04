@@ -4,30 +4,29 @@ import 'small_routine.dart';
 
 /// 빅루틴(BigRoutine) — "루틴 등록" 기획의 최상위 단위.
 ///
-/// Figma 기획 노트(2번, "루틴 등록") 요약:
-///  1) 시간 범위를 가질 수 있다 (ex: 8:00~12:00) → [startTime]/[endTime]
-///  2) 두 가지 설정값이 있다고 적혀 있었다.
-///     - 설정값1 "고정 빅루틴": 앞으로 루틴을 등록할 때 이 빅루틴이 디폴트로 생성되고,
-///       내부 스몰루틴들도 자동으로 디폴트가 되는 템플릿 개념 → [isFixedDefault]
-///     - 설정값2 "날짜 선택 / 연속적 날짜 선택" (ex: 16일~20일): 특정 하루에만 적용될 수도
-///       있고, 연속된 날짜 범위에 반복 적용될 수도 있다 → [startDate]/[endDate]
-///       (하루짜리면 startDate == endDate로 표현한다.)
-///  3) 내부에 여러 개의 스몰루틴(순서가 있는 할 일)을 담는다 → [smallRoutines]
+/// 피그마 "앱 초안"의 실제 화면 목업(오늘 할 일 / 루틴 추가 팝업)을 기준으로 다시 짰다.
+/// 처음에는 텍스트 기획 메모만 보고 "연속 날짜 범위(16일~20일 같은)"로 만들었는데,
+/// 실제 목업의 "루틴 추가" 팝업을 보니 반복 방식이 그게 아니라 **요일 반복**이었다
+/// (고정 루틴 토글을 켜면 일/월/화/수/목/금/토 중 반복할 요일을 고르는 UI가 나옴).
+/// 그래서 [date] + [isRecurring] + [recurringWeekdays] 조합으로 바꿨다:
+///  - 고정 루틴이 아니면: [date] 하루에만 적용된다.
+///  - 고정 루틴이면: [date] 이후로, [recurringWeekdays]에 포함된 요일마다 계속 적용된다.
 ///
-/// "고정 빅루틴이 등록될 때 자동으로 디폴트 생성된다"는 동작까지는 백엔드 동기화
-/// 스펙이 아직 없어서(팀 백엔드 파트와 API 계약이 확정되면) 이번 스캐폴딩에는
-/// 안 넣었다. 지금은 [isFixedDefault] 플래그만 두고, 실제로 "다음 날짜에도
-/// 자동 복사"하는 로직은 백엔드 연동 단계에서 채워 넣으면 된다.
+/// [isSent]는 목업에서 본 "전송하시겠습니까? 한 번 전송한 루틴은 수정할 수 없습니다"
+/// 팝업과 연결된 값이다. 워치로 한 번 전송(=하루의 루틴을 확정)하고 나면 그 날의
+/// 루틴들은 더 이상 수정/삭제가 안 되게 잠긴다 — 대상 사용자에게 하루 중간에
+/// 일정이 바뀌는 혼란을 주지 않으려는 의도로 보여서 그대로 반영했다.
 class BigRoutine {
   const BigRoutine({
     required this.id,
     required this.title,
     required this.startTime,
     required this.endTime,
-    required this.startDate,
-    required this.endDate,
+    required this.date,
     required this.smallRoutines,
-    this.isFixedDefault = false,
+    this.isRecurring = false,
+    this.recurringWeekdays = const {},
+    this.isSent = false,
   });
 
   final String id;
@@ -36,29 +35,40 @@ class BigRoutine {
   final TimeOfDay startTime;
   final TimeOfDay endTime;
 
-  /// 날짜는 시:분 정보 없이 "연/월/일"만 의미가 있어야 비교가 쉬워진다.
-  /// (DateTime에는 시분초가 딸려오므로, 저장/비교할 때 [_dateOnly]로 한 번 걸러준다.)
-  final DateTime startDate;
-  final DateTime endDate;
+  /// 이 빅루틴이 "만들어진" 기준 날짜. 반복이 아니면 이 날짜에만 나타나고,
+  /// 반복이면 이 날짜부터 시작해서 반복 요일마다 나타난다.
+  final DateTime date;
 
-  final bool isFixedDefault;
+  final bool isRecurring;
+
+  /// DateTime.weekday 값(월=1 ... 일=7) 집합.
+  final Set<int> recurringWeekdays;
+
+  final bool isSent;
 
   final List<SmallRoutine> smallRoutines;
 
-  static DateTime _dateOnly(DateTime date) =>
-      DateTime(date.year, date.month, date.day);
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// 캘린더에서 특정 날짜를 클릭했을 때 "이 날짜에 보여줘야 할 빅루틴인지" 판단하는 함수.
-  /// startDate ~ endDate 사이(양 끝 포함)에 있으면 true.
-  bool appliesOn(DateTime date) {
-    final target = _dateOnly(date);
-    final start = _dateOnly(startDate);
-    final end = _dateOnly(endDate);
-    return !target.isBefore(start) && !target.isAfter(end);
+  /// 캘린더/오늘 할 일 화면에서 "이 날짜에 이 빅루틴을 보여줘야 하나?"를 판단한다.
+  bool appliesOn(DateTime target) {
+    final day = _dateOnly(target);
+    final anchor = _dateOnly(date);
+    if (!isRecurring) return day == anchor;
+    if (day.isBefore(anchor)) return false;
+    return recurringWeekdays.contains(day.weekday);
   }
 
-  /// 이번 빅루틴의 "미션 이행률" — 내부 스몰루틴 중 완료된 비율.
-  /// 대시보드(메인창)의 "이번주 미션 이행률" 계산에 쓰인다.
+  /// 지금 이 순간(현재 시각)이 이 빅루틴의 시간 범위 안에 있는지.
+  /// 홈 화면의 "현재 루틴 진행중" 카드에 쓰인다.
+  bool isActiveAt(DateTime now) {
+    if (!appliesOn(now)) return false;
+    final nowMinutes = now.hour * 60 + now.minute;
+    final startMinutes = startTime.hour * 60 + startTime.minute;
+    final endMinutes = endTime.hour * 60 + endTime.minute;
+    return nowMinutes >= startMinutes && nowMinutes < endMinutes;
+  }
+
   double get completionRate {
     if (smallRoutines.isEmpty) return 0;
     final doneCount = smallRoutines.where((s) => s.isDone).length;
@@ -69,9 +79,9 @@ class BigRoutine {
     String? title,
     TimeOfDay? startTime,
     TimeOfDay? endTime,
-    DateTime? startDate,
-    DateTime? endDate,
-    bool? isFixedDefault,
+    bool? isRecurring,
+    Set<int>? recurringWeekdays,
+    bool? isSent,
     List<SmallRoutine>? smallRoutines,
   }) {
     return BigRoutine(
@@ -79,9 +89,10 @@ class BigRoutine {
       title: title ?? this.title,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      isFixedDefault: isFixedDefault ?? this.isFixedDefault,
+      date: date,
+      isRecurring: isRecurring ?? this.isRecurring,
+      recurringWeekdays: recurringWeekdays ?? this.recurringWeekdays,
+      isSent: isSent ?? this.isSent,
       smallRoutines: smallRoutines ?? this.smallRoutines,
     );
   }
@@ -92,9 +103,10 @@ class BigRoutine {
       title: map['title'] as String,
       startTime: _timeFromMinutes(map['startTimeMinutes'] as int),
       endTime: _timeFromMinutes(map['endTimeMinutes'] as int),
-      startDate: DateTime.parse(map['startDate'] as String),
-      endDate: DateTime.parse(map['endDate'] as String),
-      isFixedDefault: map['isFixedDefault'] as bool? ?? false,
+      date: DateTime.parse(map['date'] as String),
+      isRecurring: map['isRecurring'] as bool? ?? false,
+      recurringWeekdays: Set<int>.from(map['recurringWeekdays'] as List? ?? const []),
+      isSent: map['isSent'] as bool? ?? false,
       smallRoutines: (map['smallRoutines'] as List)
           .map((raw) => SmallRoutine.fromMap(Map<String, dynamic>.from(raw)))
           .toList(),
@@ -105,13 +117,12 @@ class BigRoutine {
     return {
       'id': id,
       'title': title,
-      // TimeOfDay는 그 자체로 직렬화가 안 되므로 "자정부터 몇 분 지났는지"
-      // 정수 하나로 바꿔서 저장한다. (예: 8:30 -> 8*60+30 = 510)
       'startTimeMinutes': startTime.hour * 60 + startTime.minute,
       'endTimeMinutes': endTime.hour * 60 + endTime.minute,
-      'startDate': _dateOnly(startDate).toIso8601String(),
-      'endDate': _dateOnly(endDate).toIso8601String(),
-      'isFixedDefault': isFixedDefault,
+      'date': _dateOnly(date).toIso8601String(),
+      'isRecurring': isRecurring,
+      'recurringWeekdays': recurringWeekdays.toList(),
+      'isSent': isSent,
       'smallRoutines': smallRoutines.map((s) => s.toMap()).toList(),
     };
   }
