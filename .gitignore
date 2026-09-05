@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Claude Code project notes (local only, not shared with the team)
+CLAUDE.md
