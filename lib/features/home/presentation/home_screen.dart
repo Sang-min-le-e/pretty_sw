@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
+import '../../routine/data/routine_providers.dart';
 
 /// Figma: 예소 / 홈화면 (node-id 288:1853).
 ///
@@ -774,69 +776,90 @@ class _WifiMemberRow extends StatelessWidget {
   }
 }
 
-/// "현재 루틴" 카드: 오늘 진행 중인 루틴 한 개를 요약해서 보여준다.
+/// "현재 루틴" 카드: 오늘 등록된 루틴 중 가장 이른 시간의 루틴 하나를
+/// 요약해서 보여준다.
 ///
-/// 지금은 "11:00 교무실 가기" 같은 문구가 디자인 그대로 하드코딩되어
-/// 있고, 기존에 있던 routine 기능(lib/features/routine/data/...)의
-/// Hive 데이터와는 아직 연결하지 않았다 — 실제 루틴 데이터를 보여주려면
-/// 나중에 이 카드를 Riverpod provider(예: routineListProvider)를 구독하는
-/// ConsumerWidget으로 바꿔야 한다.
-class _RoutineCard extends StatelessWidget {
+/// Hive에 저장된 실제 루틴 데이터([routinesForDateProvider])를 구독하는
+/// `ConsumerWidget`이라, 루틴 탭에서 "+"로 루틴을 새로 추가하면 이 카드도
+/// 자동으로 갱신된다. 오늘 등록된 루틴이 하나도 없으면 안내 문구만
+/// 보여준다.
+///
+/// 예전에는 이 카드를 누르면 루틴 화면(`/routine`)으로 넘어갔지만, 하단
+/// 탭바의 "루틴" 아이콘으로도 충분히 갈 수 있어서 탭 이동 기능은 뺐다 —
+/// 이제는 그냥 요약 정보만 보여주는 카드다.
+class _RoutineCard extends ConsumerWidget {
   const _RoutineCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final todayRoutines = ref.watch(
+      routinesForDateProvider(DateTime(today.year, today.month, today.day)),
+    );
+    // routinesForDateProvider는 이미 시간순으로 정렬해서 주기 때문에,
+    // 첫 번째 항목이 곧 "오늘 가장 이른 루틴" = "현재 루틴"이다.
+    final routine = todayRoutines.isEmpty ? null : todayRoutines.first;
+
     return Container(
+      // width: double.infinity를 안 주면, 내용이 전부 Text뿐일 때
+      // (예: "오늘 등록된 루틴이 없어요") Column이 그 글자 폭만큼만
+      // 차지해서 카드가 원래보다 훨씬 좁아 보인다 — 위치/WIFI 카드와
+      // 같은 폭으로 항상 꽉 채우도록 명시한다.
+      width: double.infinity,
       decoration: _cardDecoration(),
       padding: const EdgeInsets.fromLTRB(23, 16, 23, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text(
-                '현재 루틴',
-                style: TextStyle(
-                  color: HomeScreen._captionColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              Spacer(),
-              RotatedBox(
-                quarterTurns: 1,
-                child: SizedBox(
-                  width: 7,
-                  height: 4,
-                  child: _AssetIcon('assets/images/home_chevron_small.svg'),
-                ),
-              ),
-            ],
+          const Text(
+            '현재 루틴',
+            style: TextStyle(
+              color: HomeScreen._captionColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           const SizedBox(height: 8),
-          const Row(
-            children: [
-              Text(
-                '11:00 교무실 가기',
-                style: TextStyle(
-                  color: HomeScreen._labelColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+          if (routine == null)
+            const Text(
+              '오늘 등록된 루틴이 없어요',
+              style: TextStyle(
+                color: HomeScreen._captionColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
               ),
-              SizedBox(width: 6),
-              Text(
-                '・지예님의 기기 외 4명',
-                style: TextStyle(
-                  color: HomeScreen._captionColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  '${_timeLabel(routine.dateTime)} ${routine.title}',
+                  style: const TextStyle(
+                    color: HomeScreen._labelColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 6),
+                Text(
+                  '・${routine.tag}',
+                  style: const TextStyle(
+                    color: HomeScreen._captionColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
+  }
+
+  /// [dateTime]의 시/분만 "11:00"처럼 두 자리씩 맞춰 문자열로 바꾼다.
+  static String _timeLabel(DateTime dateTime) {
+    final time = TimeOfDay.fromDateTime(dateTime);
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
   }
 }

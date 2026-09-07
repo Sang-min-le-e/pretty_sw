@@ -4,6 +4,10 @@ import '../../../core/storage/local_storage_service.dart';
 import '../domain/routine.dart';
 
 abstract class RoutineRepository {
+  /// 저장된 모든 루틴을 날짜 상관없이 통째로 돌려준다. 특정 날짜만 걸러내는
+  /// 작업은 [routine_providers.dart]의 파생 provider들이 담당한다 —
+  /// 루틴 개수가 많지 않은 로컬 앱이라 매번 전체를 불러온 뒤 메모리에서
+  /// 걸러도 충분하기 때문이다.
   Future<List<Routine>> getRoutines();
   Future<void> saveRoutine(Routine routine);
 }

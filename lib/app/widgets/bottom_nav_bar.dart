@@ -83,11 +83,26 @@ class _HomePill extends StatelessWidget {
     return Container(
       width: 59,
       height: 59,
+      // alignment을 안 주면 이 Container가 자식에게 "무조건 59x59로
+      // 꽉 채워라"는 고정(tight) 제약을 그대로 물려줘서, 안쪽
+      // _NavIconButton에 어떤 width/height를 줘도 무시되고 패딩을 뺀
+      // 남는 공간(39x39)만큼 늘어나 버린다(오른쪽 3개 아이콘은 Row 안에
+      // 있어서 이 문제가 없다). alignment.center를 주면 Flutter가 이
+      // 고정 제약을 자식에게 "이 크기 이하로 원하는 만큼" 제약으로
+      // 풀어주기 때문에, 아래 _NavIconButton에 지정한 크기가 실제로
+      // 반영된다.
+      alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: BottomNavBar._pillColor,
         shape: BoxShape.circle, // 정원(正圓) 모양 배경
       ),
       child: _NavIconButton(
+        // Figma 원본 컴포넌트("Group 194")에서 집 아이콘은 27x30으로
+        // 그려져 있다 — 이게 원래 크기였는데, 바로 위 Container가
+        // 자식에게 고정(tight) 제약을 물려주는 버그 때문에 실제로는
+        // 그보다 훨씬 크게(약 35x39) 렌더링되고 있었다. alignment로
+        // 그 버그를 고친 지금은 Figma 원본 그대로 27x30을 쓰면 오른쪽
+        // 3개 아이콘과 같은 비율로 보인다.
         asset: 'assets/images/home_nav_home.svg',
         width: 27,
         height: 30,
