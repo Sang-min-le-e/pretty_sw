@@ -1,13 +1,31 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/login_social_basic_info_screen.dart';
+import '../features/auth/presentation/login_social_screen.dart';
+import '../features/devices/presentation/add_connected_device_screen.dart';
+import '../features/devices/presentation/add_device_screen.dart';
+import '../features/devices/presentation/connected_devices_screen.dart';
+import '../features/devices/presentation/device_detail_screen.dart';
+import '../features/devices/presentation/device_settings_screen.dart';
+import '../features/devices/presentation/device_stats_screen.dart';
 import '../features/devices/presentation/devices_screen.dart';
+import '../features/devices/presentation/wifi_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/onboarding/presentation/child_info_screen.dart';
 import '../features/onboarding/presentation/device_connection_screen.dart';
 import '../features/onboarding/presentation/guardian_info_screen.dart';
+import '../features/profile/presentation/language_screen.dart';
+import '../features/profile/presentation/login_history_screen.dart';
+import '../features/profile/presentation/profile_edit_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/profile/presentation/user_settings_screen.dart';
+import '../features/routine/domain/routine_template.dart';
+import '../features/routine/presentation/add_routine_screen.dart';
+import '../features/routine/presentation/routine_detail_screen.dart';
 import '../features/routine/presentation/routine_screen.dart';
+import '../features/routine/presentation/routine_template_list_screen.dart';
+import '../features/routine/presentation/routine_type_select_screen.dart';
 import '../features/routine/presentation/today_routines_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/watch_connection/presentation/watch_connection_screen.dart';
@@ -28,7 +46,24 @@ final appRouter = GoRouter(
     //    로그인 성공 시 login_screen.dart의 _submit()에서
     //    - 보호자 정보가 이미 저장돼 있으면 '/' (홈)로,
     //    - 없으면(최초 로그인) '/onboarding/guardian-info'로 보낸다.
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+      routes: [
+        // => '/login/social', 원래 Figma 목업이던 소셜 로그인 화면
+        // (login_screen.dart 문서 주석 참고 — 실사용 로그인 수단은 아니다).
+        GoRoute(
+          path: 'social',
+          builder: (context, state) => const LoginSocialScreen(),
+          routes: [
+            GoRoute(
+              path: 'basic-info',
+              builder: (context, state) => const LoginSocialBasicInfoScreen(),
+            ),
+          ],
+        ),
+      ],
+    ),
 
     // 3) 초기 설정(온보딩) 3단계 — 최초 로그인일 때만 순서대로 지나간다.
     GoRoute(
@@ -75,21 +110,127 @@ final appRouter = GoRouter(
             child: const TodayRoutinesScreen(),
           ),
         ),
+        // => '/routine/detail/:id', 루틴 카드의 화살표(›)를 누르면
+        // 도착하는 완료 현황 상세 화면.
+        GoRoute(
+          path: 'detail/:id',
+          builder: (context, state) =>
+              RoutineDetailScreen(routineId: state.pathParameters['id']!),
+        ),
+        // => '/routine/edit/:id', 상세 화면 우측 상단 설정 톱니바퀴를
+        // 누르면 도착하는 수정 폼(Figma "7"/"7-1").
+        GoRoute(
+          path: 'edit/:id',
+          builder: (context, state) =>
+              RoutineEditScreen(routineId: state.pathParameters['id']!),
+        ),
+        // => '/routine/add', "+" 버튼을 누르면 도착하는 "단일 루틴 /
+        // 복합 루틴" 선택 화면(Figma "4. 루틴 추가 선택 화면").
+        GoRoute(
+          path: 'add',
+          builder: (context, state) => const RoutineTypeSelectScreen(),
+          routes: [
+            // => '/routine/add/single', 단일 루틴 추가 폼. "템플릿 사용"
+            // 화면에서 템플릿을 골라 들어오면 state.extra로 그 템플릿을
+            // 받아서 이름/할 일 목록을 미리 채운다.
+            GoRoute(
+              path: 'single',
+              builder: (context, state) => AddRoutineScreen(
+                template: state.extra as RoutineTemplate?,
+              ),
+            ),
+            // => '/routine/add/compound', 복합 루틴 추가 폼.
+            GoRoute(
+              path: 'compound',
+              builder: (context, state) => const AddRoutineScreen(compound: true),
+            ),
+            // => '/routine/add/templates', 저장된 템플릿 목록.
+            GoRoute(
+              path: 'templates',
+              builder: (context, state) => const RoutineTemplateListScreen(),
+            ),
+          ],
+        ),
       ],
     ),
     GoRoute(
-      path: '/devices', // 기기 탭 — 아직 자리만 잡아둔 화면
+      path: '/devices', // 기기 탭 — 등록된 자녀 기기 그리드
       builder: (context, state) => const DevicesScreen(),
+      routes: [
+        // => '/devices/add', "기기 추가하기" 점선 카드를 누르면 도착하는
+        // BLE 페어링 대기 + WIFI 입력 2단계 화면.
+        GoRoute(
+          path: 'add',
+          builder: (context, state) => const AddDeviceScreen(),
+        ),
+        // => '/devices/:name', 기기 카드를 누르면 도착하는 상세 관리 화면.
+        GoRoute(
+          path: ':name',
+          builder: (context, state) => DeviceDetailScreen(
+            deviceOwnerName: state.pathParameters['name']!,
+          ),
+          routes: [
+            // => '/devices/:name/wifi', 상세 화면의 "연결됨" 줄을 누르면.
+            GoRoute(
+              path: 'wifi',
+              builder: (context, state) => const WifiSettingsScreen(),
+            ),
+            // => '/devices/:name/settings', 상세 화면 우측 상단 설정 톱니바퀴.
+            GoRoute(
+              path: 'settings',
+              builder: (context, state) => DeviceSettingsScreen(
+                deviceOwnerName: state.pathParameters['name']!,
+              ),
+            ),
+            // => '/devices/:name/stats', 상세 화면의 "루틴 통계 보기" 카드.
+            GoRoute(
+              path: 'stats',
+              builder: (context, state) => DeviceStatsScreen(
+                deviceOwnerName: state.pathParameters['name']!,
+              ),
+            ),
+          ],
+        ),
+      ],
     ),
     GoRoute(
-      path: '/profile', // 내 정보(사람) 탭 — 아직 자리만 잡아둔 화면
+      path: '/profile', // 내 정보 탭
       builder: (context, state) => const ProfileScreen(),
+      routes: [
+        // => '/profile/edit', 프로필(아바타/닉네임) 관리.
+        GoRoute(path: 'edit', builder: (context, state) => const ProfileEditScreen()),
+        // => '/profile/language', 언어 선택.
+        GoRoute(path: 'language', builder: (context, state) => const LanguageScreen()),
+        // => '/profile/user-settings', 보호자 정보 + 로그아웃/탈퇴.
+        GoRoute(
+          path: 'user-settings',
+          builder: (context, state) => const UserSettingsScreen(),
+        ),
+        // => '/profile/login-history', 로그인 기록.
+        GoRoute(
+          path: 'login-history',
+          builder: (context, state) => const LoginHistoryScreen(),
+        ),
+      ],
     ),
 
     // 5) 하단 탭바에는 없지만 다른 화면에서 진입할 수 있는 화면들
     GoRoute(
       path: '/watch-connection', // 워치(손목 기기) BLE 페어링 화면
       builder: (context, state) => const WatchConnectionScreen(),
+    ),
+    // 홈/기기 상세 화면의 "연결된 기기" 카드를 누르면 도착하는 화면.
+    // 두 탭(홈/기기)에서 공통으로 들어오는 화면이라 어느 한쪽 하위
+    // 라우트로 넣지 않고 최상위에 뒀다.
+    GoRoute(
+      path: '/connected-devices',
+      builder: (context, state) => const ConnectedDevicesScreen(),
+      routes: [
+        GoRoute(
+          path: 'add',
+          builder: (context, state) => const AddConnectedDeviceScreen(),
+        ),
+      ],
     ),
   ],
 );

@@ -8,7 +8,7 @@ import '../data/routine_providers.dart';
 import 'widgets/add_routine_button.dart';
 import 'widgets/routine_card.dart';
 
-/// Figma: 예소 / "1. 일정 탭 첫 화면" (node-id 279:4282).
+/// Figma: 예소 / "1. 일정 탭 첫 화면" (node-id 392:1740, "앱 초안 3" 프레임 안).
 ///
 /// 하단 탭바의 "루틴" 탭이자, 홈 화면의 "현재 루틴" 카드를 눌렀을 때
 /// 도착하는 화면이기도 하다. 진짜 달력(월 이동 가능) + 선택한 날짜의

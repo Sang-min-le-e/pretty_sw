@@ -1,33 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/routine.dart';
 
-/// 루틴 카드 한 장. 기본은 "11:00 교무실 가기 ・지예님의 기기" 한 줄만
-/// 보이는 접힌 상태고, [routine.steps]가 있으면 오른쪽에 펼침 화살표(›)가
-/// 붙어서 눌렀을 때 하위 할 일 목록이 번호 배지와 함께 펼쳐진다.
+/// 루틴 카드 한 장. "11:00 교무실 가기 ・지예님의 기기" 한 줄에, 여러
+/// 단계로 이뤄진 루틴([routine.steps]가 있는 경우)이면 그 아래 번호가
+/// 매겨진 하위 할 일 목록이 항상(토글 없이) 펼쳐져 보인다. 오른쪽 끝의
+/// 화살표(›)는 눌렀을 때 완료 현황을 보여주는 상세 화면
+/// (`RoutineDetailScreen`, Figma node 392:2096)으로 이동하는 버튼이다 —
+/// 이전 버전에서는 이 화살표가 "카드 접기/펼치기" 토글이었지만, 새
+/// 디자인에서는 여러 단계 루틴도 목록에서 항상 펼쳐진 채로 보이고
+/// 화살표는 상세 화면으로만 쓰인다.
 ///
 /// 달력이 있는 루틴 화면(`RoutineScreen`)과 "오늘 할 일" 전체 목록 화면
 /// (`TodayRoutinesScreen`)이 똑같은 카드 디자인을 쓰기 때문에, 두 화면
 /// 어디서든 가져다 쓸 수 있게 공용 위젯으로 뺐다.
-class RoutineCard extends StatefulWidget {
+class RoutineCard extends StatelessWidget {
   const RoutineCard({super.key, required this.routine});
 
   final Routine routine;
-
-  @override
-  State<RoutineCard> createState() => _RoutineCardState();
-}
-
-class _RoutineCardState extends State<RoutineCard> {
-  bool _expanded = false;
 
   static const _labelColor = Color(0xFF505050);
   static const _captionColor = Color(0xFF7F7F7F);
 
   @override
   Widget build(BuildContext context) {
-    final routine = widget.routine;
     final hasSteps = routine.steps.isNotEmpty;
     final time = TimeOfDay.fromDateTime(routine.dateTime);
     final timeLabel =
@@ -35,10 +33,8 @@ class _RoutineCardState extends State<RoutineCard> {
         '${time.minute.toString().padLeft(2, '0')}';
 
     return GestureDetector(
-      // 하위 할 일이 없는 루틴은 펼칠 내용이 없으니 탭해도 반응하지 않는다.
-      onTap: hasSteps ? () => setState(() => _expanded = !_expanded) : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      onTap: () => context.push('/routine/detail/${routine.id}'),
+      child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(23, 16, 15, 16),
         decoration: BoxDecoration(
@@ -80,19 +76,17 @@ class _RoutineCardState extends State<RoutineCard> {
                     ],
                   ),
                 ),
-                // 접혀 있을 때만 "더 볼 내용이 있다"는 뜻의 › 화살표를 보여준다.
-                if (hasSteps && !_expanded)
-                  RotatedBox(
-                    quarterTurns: 1,
-                    child: SvgPicture.asset(
-                      'assets/images/home_chevron_small.svg',
-                      width: 7,
-                      height: 4,
-                    ),
+                RotatedBox(
+                  quarterTurns: 1,
+                  child: SvgPicture.asset(
+                    'assets/images/home_chevron_small.svg',
+                    width: 7,
+                    height: 4,
                   ),
+                ),
               ],
             ),
-            if (_expanded) ...[
+            if (hasSteps) ...[
               const SizedBox(height: 14),
               for (var i = 0; i < routine.steps.length; i++)
                 Padding(

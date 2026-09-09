@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="72" height="75" viewBox="0 0 72 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 508" filter="url(#filter0_d_0_50)">
+<path id="Ellipse (Stroke)" d="M40.0833 9.5C40.0833 7.40592 38.2552 5.70833 36 5.70833C33.7448 5.70833 31.9167 7.40592 31.9167 9.5C31.9167 11.5941 33.7448 13.2917 36 13.2917V16C32.134 16 29 13.0899 29 9.5C29 5.91015 32.134 3 36 3C39.866 3 43 5.91015 43 9.5C43 13.0899 39.866 16 36 16V13.2917C38.2552 13.2917 40.0833 11.5941 40.0833 9.5Z" fill="#E1E1E1"/>
+<path id="Rectangle" d="M4 28.2C4 19.8053 10.6859 13 18.9333 13H53.0667C61.3141 13 68 19.8053 68 28.2V54.8C68 63.1947 61.3141 70 53.0667 70H18.9333C10.6859 70 4 63.1947 4 54.8V28.2Z" fill="#E1E1E1"/>
+<path id="Rectangle_2" d="M12 29.6176C12 25.4105 15.4189 22 19.6364 22H52.3636C56.5811 22 60 25.4105 60 29.6176V51.3824C60 55.5895 56.5811 59 52.3636 59H19.6364C15.4189 59 12 55.5895 12 51.3824V29.6176Z" fill="white"/>
+<path id="Ellipse" d="M30 37C30 38.1046 29.1046 39 28 39C26.8954 39 26 38.1046 26 37C26 35.8954 26.8954 35 28 35C29.1046 35 30 35.8954 30 37Z" fill="#2B2B2B"/>
+<path id="Ellipse_2" d="M44 37C44 38.1046 43.1046 39 42 39C40.8954 39 40 38.1046 40 37C40 35.8954 40.8954 35 42 35C43.1046 35 44 35.8954 44 37Z" fill="#2B2B2B"/>
+</g>
+<defs>
+<filter id="filter0_d_0_50" x="0" y="0" width="72" height="75" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="1"/>
+<feGaussianBlur stdDeviation="2"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.27 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_50"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_50" result="shape"/>
+</filter>
+</defs>
+</svg>

@@ -133,6 +133,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
               ),
+              // 원래 Figma 목업이던 소셜 로그인 화면은 지워지지 않았다 —
+              // 이 링크로 그 디자인을 그대로 볼 수 있게 남겨뒀다(자세한
+              // 이유는 이 파일 위쪽 문서 주석 참고). 실제 로그인 수단은
+              // 여전히 이메일뿐이다.
+              TextButton(
+                onPressed: () => context.push('/login/social'),
+                child: const Text(
+                  '다른 방법으로 로그인',
+                  style: TextStyle(
+                    color: Color(0xFFA5A5A5),
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
               const Spacer(flex: 1),
             ],
           ),

@@ -39,6 +39,33 @@ final routinesForDateProvider = Provider.family<List<Routine>, DateTime>((
   return sameDay;
 });
 
+/// [id]와 일치하는 루틴 하나를 찾아 돌려준다(없으면 null). 루틴 상세
+/// 화면(`RoutineDetailScreen`)이 라우트 파라미터로 받은 id로 실제 루틴을
+/// 찾아올 때 쓴다.
+final routineByIdProvider = Provider.family<Routine?, String>((ref, id) {
+  final all = ref.watch(routineListProvider).value ?? const [];
+  for (final routine in all) {
+    if (routine.id == id) return routine;
+  }
+  return null;
+});
+
+/// 루틴을 새로 저장하는 동작을 한 곳에 모아둔 헬퍼. 저장 후
+/// [routineListProvider]를 무효화(invalidate)해서, 그 provider를 구독하는
+/// 모든 화면(달력, 오늘 할 일, 상세)이 자동으로 최신 목록을 다시 받는다.
+final routineActionsProvider = Provider((ref) => RoutineActions(ref));
+
+class RoutineActions {
+  RoutineActions(this._ref);
+
+  final Ref _ref;
+
+  Future<void> addRoutine(Routine routine) async {
+    await _ref.read(routineRepositoryProvider).saveRoutine(routine);
+    _ref.invalidate(routineListProvider);
+  }
+}
+
 /// [month]가 속한 한 달 동안, "일(day) → 그날 루틴 개수" 맵을 만들어준다.
 /// 달력 칸 아래에 표시하는 작은 회색 배지(예: 8일 아래 "3")가 이 값을 쓴다.
 /// 루틴이 없는 날은 맵에 키 자체가 없다(0을 넣지 않음).
