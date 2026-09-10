@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
+import '../../auth/data/auth_providers.dart';
 import 'widgets/settings_card.dart';
 
 /// Figma: 예소 / "사용자 설정" (node-id 392:5512, "앱 초안 3" 프레임 안,
@@ -9,11 +11,13 @@ import 'widgets/settings_card.dart';
 /// 확인 다이얼로그가 열린 상태의 변형인 415:2152/415:2166은 별도 화면이
 /// 아니라 이 화면 위에 [showDialog]로 띄운다). "내 정보" 화면의 "사용자
 /// 설정" 줄을 누르면 도착한다.
-class UserSettingsScreen extends StatelessWidget {
+class UserSettingsScreen extends ConsumerWidget {
   const UserSettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
+    final guardianName = userAsync.value?.name ?? '';
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
@@ -25,11 +29,10 @@ class UserSettingsScreen extends StatelessWidget {
               const SizedBox(height: 20),
               BackHeader(title: '사용자 설정', onBack: () => context.pop()),
               const SizedBox(height: 24),
-              const SettingsCard(
+              SettingsCard(
                 children: [
-                  SettingsChevronRow(label: '보호자 설정'),
-                  SettingsValueRow(label: '보호자 성명', value: '백지예'),
-                  SettingsValueRow(label: '전화번호', value: '010-1234-5678'),
+                  const SettingsChevronRow(label: '보호자 설정'),
+                  SettingsValueRow(label: '보호자 성명', value: guardianName),
                 ],
               ),
               const Spacer(),
@@ -38,6 +41,7 @@ class UserSettingsScreen extends StatelessWidget {
                 filled: false,
                 onTap: () => _confirm(
                   context,
+                  ref,
                   title: '로그아웃 하시겠습니까?',
                   content: '다시 로그인해야 정보를 가져올 수 있습니다.',
                   confirmLabel: '로그아웃하기',
@@ -49,6 +53,7 @@ class UserSettingsScreen extends StatelessWidget {
                 filled: true,
                 onTap: () => _confirm(
                   context,
+                  ref,
                   title: '탈퇴 하시겠습니까?',
                   content: '기기 연결이 끊어지며, 앱에 저장된 정보가 모두 삭제됩니다.',
                   confirmLabel: '탈퇴하기',
@@ -62,8 +67,13 @@ class UserSettingsScreen extends StatelessWidget {
     );
   }
 
+  // 로그아웃과 탈퇴하기 둘 다 이 화면에서는 같은 동작이다: 서버
+  // `access_uuid`를 무효화하고 로그인 화면으로 보낸다. 탈퇴하기가 실제로
+  // 계정을 지우지 못하는 이유는 `profile_screen.dart`의 같은 이름 메서드
+  // 주석 참고 — `DELETE /users/me`가 아직 백엔드에 없다.
   Future<void> _confirm(
-    BuildContext context, {
+    BuildContext context,
+    WidgetRef ref, {
     required String title,
     required String content,
     required String confirmLabel,
@@ -82,8 +92,9 @@ class UserSettingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true && context.mounted) {
-      context.go('/login');
+    if (confirmed == true) {
+      await ref.read(authRepositoryProvider).logout();
+      if (context.mounted) context.go('/login');
     }
   }
 }

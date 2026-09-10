@@ -1,24 +1,29 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
+import '../../auth/data/auth_providers.dart';
+import '../data/avatar_providers.dart';
 import 'widgets/settings_card.dart';
 
 /// Figma: 예소 / "내 정보" (node-id 392:5396, "앱 초안 3" 프레임 안, 이름
 /// 없는 "iPhone 17 - 76" 프레임으로 저장돼 있었다). 하단 탭바의 "내 정보" 탭.
 ///
-/// 프로필 카드(아바타+이름, 눌러서 "프로필 관리"로 이동) 아래 3개 설정
-/// 카드(앱 설정 / 계정 / 이용 안내)와 로그아웃·탈퇴·앱 버전 카드로
-/// 이뤄진다. "고객센터"/"약관 및 정책"은 실제로 보여줄 문서/채널이 없어서
-/// 지금은 눌러도 반응하지 않는다.
-class ProfileScreen extends StatefulWidget {
+/// 프로필 카드(아바타+이름, 눌러서 "프로필 관리"로 이동) 아래 2개 설정
+/// 카드(앱 설정 / 계정)와 로그아웃·탈퇴·앱 버전 카드로 이뤄진다. Figma
+/// 목업에 있던 "이용 안내"(고객센터/약관 및 정책) 카드는 보여줄 실제
+/// 문서·채널이 없어서 뺐다.
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   static const _labelColor = Color(0xFF505050);
 
   // 알림/다크모드는 아직 실제로 알림을 끄거나 앱 전체 테마를 바꾸는
@@ -29,6 +34,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userAsync = ref.watch(currentUserProvider);
+    // 로딩/에러 중엔 빈 문자열로 둔다 — 이 탭에 왔다는 건 이미 로그인이
+    // 끝난 상태라 보통 순간적으로만 비어 보인다.
+    final userName = userAsync.value?.name ?? '';
+    final avatarPath = ref.watch(avatarPathProvider).value;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
@@ -47,18 +57,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () => context.push('/profile/edit'),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 22,
-                      backgroundColor: Color(0xFFCACACA),
-                      child: Icon(Icons.person, color: Colors.white, size: 26),
+                      backgroundColor: const Color(0xFFCACACA),
+                      backgroundImage: avatarPath == null ? null : FileImage(File(avatarPath)),
+                      child: avatarPath == null
+                          ? const Icon(Icons.person, color: Colors.white, size: 26)
+                          : null,
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '백지예',
-                          style: TextStyle(color: _labelColor, fontSize: 16, fontWeight: FontWeight.w600),
+                        Text(
+                          userName,
+                          style: const TextStyle(color: _labelColor, fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                         Row(
                           children: const [
@@ -109,14 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              const SettingsCard(
-                title: '이용 안내',
-                children: [
-                  SettingsChevronRow(label: '고객센터'),
-                  SettingsChevronRow(label: '약관 및 정책'),
-                ],
-              ),
-              const SizedBox(height: 14),
               SettingsCard(
                 children: [
                   const SettingsValueRow(label: '앱 버전', value: '0.1.0'),
@@ -151,11 +156,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (confirmed == true && context.mounted) {
-      context.go('/login');
+    if (confirmed == true) {
+      // 서버 `access_uuid` 무효화까지 기다린 다음 이동한다 — 로그아웃
+      // API가 실패해도 로컬 세션은 지워지므로(auth_repository.dart의
+      // finally) 화면 전환 자체는 항상 일어난다.
+      await ref.read(authRepositoryProvider).logout();
+      if (context.mounted) context.go('/login');
     }
   }
 
+  // 탈퇴하기는 아직 서버에 `DELETE /users/me`가 없어서(ERD.md `확정 필요
+  // 항목` — cascade 삭제 정책 미정) 계정과 데이터를 실제로 지우지는
+  // 못한다. 그때까지는 최소한 로그아웃과 같은 효과(`access_uuid` 무효화)만
+  // 내고 로그인 화면으로 보낸다 — 삭제 엔드포인트가 생기면 이 자리를
+  // `DELETE /users/me` 호출로 바꾼다.
   Future<void> _confirmWithdraw(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -171,8 +185,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (confirmed == true && context.mounted) {
-      context.go('/login');
+    if (confirmed == true) {
+      await ref.read(authRepositoryProvider).logout();
+      if (context.mounted) context.go('/login');
     }
   }
 }

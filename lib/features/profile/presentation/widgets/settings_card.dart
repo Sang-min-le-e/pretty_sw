@@ -88,7 +88,11 @@ class SettingsChevronRow extends StatelessWidget {
       ],
     );
     if (onTap == null) return row;
-    return GestureDetector(onTap: onTap, child: row);
+    // HitTestBehavior.opaque가 없으면 GestureDetector는 실제로 칠해진
+    // 자식(텍스트·아이콘)에만 반응해서, 라벨과 화살표 사이 빈 공간을 눌렀을
+    // 때 무시된다 — 줄 전체(화살표 포함)를 어디든 누르면 반응하게 하려면
+    // 이 옵션으로 Row가 차지하는 영역 전체를 히트 테스트 대상으로 넓혀야 한다.
+    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: row);
   }
 }
 
