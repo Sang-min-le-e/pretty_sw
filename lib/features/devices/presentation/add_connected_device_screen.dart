@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 
 /// Figma: 예소 / "연결된 기기" 추가 흐름 (node-id 392:5243 / 392:5255 /
 /// 392:5275, "앱 초안 3" 프레임 안, 이름 없는 "iPhone 17 - 73/74/75"
@@ -13,14 +15,14 @@ import '../../home/presentation/widgets/device_overview.dart';
 /// 후보 기기 중 하나를 골라 확정. 실제로는 백엔드에 기기 아이디를 조회할
 /// 방법이 없어서, 무엇을 입력하든 항상 같은 예시 기기 3개를 후보로
 /// 보여준다 — 그래서 뭘 골라도 실제로 연결되는 기기는 바뀌지 않는다.
-class AddConnectedDeviceScreen extends StatefulWidget {
+class AddConnectedDeviceScreen extends ConsumerStatefulWidget {
   const AddConnectedDeviceScreen({super.key});
 
   @override
-  State<AddConnectedDeviceScreen> createState() => _AddConnectedDeviceScreenState();
+  ConsumerState<AddConnectedDeviceScreen> createState() => _AddConnectedDeviceScreenState();
 }
 
-class _AddConnectedDeviceScreenState extends State<AddConnectedDeviceScreen> {
+class _AddConnectedDeviceScreenState extends ConsumerState<AddConnectedDeviceScreen> {
   int _step = 0;
   final _idController = TextEditingController();
 
@@ -86,7 +88,9 @@ class _AddConnectedDeviceScreenState extends State<AddConnectedDeviceScreen> {
                       )
                     : _PickDeviceStep(
                         candidates: _candidates,
-                        onPicked: () {
+                        onPicked: (name) async {
+                          await ref.read(deviceActionsProvider).addDevice(name);
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('기기를 연결했어요')),
                           );
@@ -179,7 +183,7 @@ class _PickDeviceStep extends StatelessWidget {
   const _PickDeviceStep({required this.candidates, required this.onPicked});
 
   final List<(String, String)> candidates;
-  final VoidCallback onPicked;
+  final ValueChanged<String> onPicked;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +193,7 @@ class _PickDeviceStep extends StatelessWidget {
       children: [
         for (final candidate in candidates)
           InkWell(
-            onTap: onPicked,
+            onTap: () => onPicked(candidate.$1),
             borderRadius: BorderRadius.circular(25),
             child: Container(
               width: 156,

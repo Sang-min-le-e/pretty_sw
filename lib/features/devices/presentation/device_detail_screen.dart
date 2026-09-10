@@ -38,6 +38,13 @@ class DeviceDetailScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 24, bottom: 24),
                 child: Column(
+                  // DeviceStatusList는 내용물 너비만큼만 차지하는 Column이라,
+                  // 기본 center 정렬이면 제목 밑에서 가운데로 몰린다. start로
+                  // 바꿔서 제목과 같은 왼쪽 기준선에 붙인다 — 대신 원래
+                  // 가운데 있던 페이지네이션 점만 Center로 따로 감싸서
+                  // 그대로 가운데에 남긴다(그 외엔 전부 가로로 꽉 차는
+                  // Row/Container라 이 변경에 영향받지 않는다).
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 38),
@@ -54,7 +61,7 @@ class DeviceDetailScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     const DeviceCarousel(),
                     const SizedBox(height: 12),
-                    const DevicePaginationDots(),
+                    const Center(child: DevicePaginationDots()),
                     const SizedBox(height: 36),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 40),

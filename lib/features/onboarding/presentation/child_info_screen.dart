@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/onboarding_providers.dart';
+import '../../../core/network/api_exception.dart';
+import '../../children/data/child_providers.dart';
 import 'widgets/step_dots.dart';
 
 /// Figma: 예소 / 앱 초안 / Group 454 (node-id 279:1910) — 초기 설정 2단계.
 ///
-/// 보호자 정보 다음 단계로, 자녀 이름과 생년월일을 입력받는다. 이후 단계
-/// 화면은 아직 없어서 "다음으로"는 입력값을 저장한 뒤 임시로 홈으로 이동한다.
+/// 보호자 정보 다음 단계로, 자녀 이름·생년월일·(원래 1단계에 있었던)
+/// 자녀와의 관계를 입력받아 `POST /children`으로 등록한다(`docs/API.md`
+/// 6장 — 온보딩 2차). `relationship`은 백엔드가 `PARENT`(부모)/`ADMIN`
+/// (관리자) 두 값으로 제한해뒀다(2026-09-04 확정).
 class ChildInfoScreen extends ConsumerStatefulWidget {
   const ChildInfoScreen({super.key});
 
@@ -22,11 +25,17 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
   static const _borderColor = Color(0xFFD9D9D9);
   static const _brandBlue = Color(0xFF4ABEFF);
 
+  // 화면에 보여줄 한국어 표기 -> 백엔드 relationship 값.
+  // docs/API.md 6장: "한국어 '부모'·'관리자'를 코드값으로 옮긴 것입니다."
+  static const _relationships = {'부모': 'PARENT', '관리자': 'ADMIN'};
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   int? _year;
   int? _month;
   int? _day;
+  String? _relationship;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -52,12 +61,21 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(onboardingRepositoryProvider).saveChildInfo(
-          name: _nameController.text,
-          birthDate: DateTime(_year!, _month!, _day!),
-        );
-    if (!mounted) return;
-    context.push('/onboarding/device-connection');
+    setState(() => _submitting = true);
+    try {
+      await ref.read(childRepositoryProvider).createChild(
+            name: _nameController.text,
+            birthDate: DateTime(_year!, _month!, _day!),
+            relationship: _relationships[_relationship]!,
+          );
+      if (!mounted) return;
+      context.push('/onboarding/device-connection');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -166,18 +184,40 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 32),
+                const Text(
+                  '자녀와의 관계',
+                  style: TextStyle(color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _relationship,
+                  decoration: _fieldDecoration('선택하세요'),
+                  icon: const Icon(Icons.keyboard_arrow_down, color: _hintColor),
+                  items: _relationships.keys
+                      .map((label) => DropdownMenuItem(value: label, child: Text(label)))
+                      .toList(),
+                  onChanged: (value) => setState(() => _relationship = value),
+                  validator: (value) => value == null ? '자녀와의 관계를 선택해주세요' : null,
+                ),
                 const Spacer(flex: 5),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _submitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _brandBlue,
                       foregroundColor: Colors.white,
                       shape: const StadiumBorder(),
                     ),
-                    child: const Text('다음으로', style: TextStyle(fontSize: 22)),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('다음으로', style: TextStyle(fontSize: 22)),
                   ),
                 ),
                 const SizedBox(height: 8),

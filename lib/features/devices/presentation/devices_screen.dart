@@ -1,41 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 
 /// Figma: 예소 / "8. 기기 관리 기본 화면" (node-id 392:2250, "앱 초안 3"
-/// 프레임 안). 하단 탭바의 "기기" 탭 — 등록된 자녀 기기들을 2열 그리드로
-/// 보여주고, 카드를 누르면 그 기기의 상세 관리 화면(`DeviceDetailScreen`)
-/// 으로 이동한다.
-///
-/// "기기 추가하기" 점선 카드는 아직 기기 페어링 화면(Figma "8-6")을 만들지
-/// 않아서 지금은 눌러도 반응하지 않는다.
-class DevicesScreen extends StatelessWidget {
+/// 프레임 안). 하단 탭바의 "기기" 탭 — 실제로 연결된(페어링된) 자녀
+/// 기기들을 [deviceListProvider]에서 읽어와 2열 그리드로 보여주고, 카드를
+/// 누르면 그 기기의 상세 관리 화면(`DeviceDetailScreen`)으로 이동한다.
+/// 기기가 하나도 없으면 "기기 추가하기" 점선 카드만 남는다.
+class DevicesScreen extends ConsumerWidget {
   const DevicesScreen({super.key});
 
   static const _bg = Color(0xFFF4F4F4);
 
-  // 지금은 실제 기기 등록/삭제 기능이 없어서, 홈 화면의 "연결된 기기"
-  // 카드와 같은 세 자녀를 그대로 하드코딩해서 보여준다.
-  static const _devices = [
-    _DeviceEntry(
-      name: '지예',
-      iconAsset: 'assets/images/member_device_green.svg',
-    ),
-    _DeviceEntry(
-      name: '예담',
-      iconAsset: 'assets/images/member_device_gray.svg',
-    ),
-    _DeviceEntry(
-      name: '예소',
-      iconAsset: 'assets/images/member_device_purple.svg',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final devices = ref.watch(deviceListProvider).value ?? const [];
+
     return Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
@@ -59,17 +44,18 @@ class DevicesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
                 // Wrap으로 2열 그리드를 만든다. GridView 대신 Wrap을 쓴 건,
-                // 카드 개수가 적고(자녀 3명 + 추가 카드) 카드 높이가 고정
-                // (157)이라 스크롤 영역 안에서 내용물 높이만큼만 차지하는
-                // Wrap이 GridView의 shrinkWrap 설정보다 더 간단하기 때문.
+                // 카드 개수가 적고 카드 높이가 고정(157)이라 스크롤 영역
+                // 안에서 내용물 높이만큼만 차지하는 Wrap이 GridView의
+                // shrinkWrap 설정보다 더 간단하기 때문.
                 Wrap(
                   spacing: 14,
                   runSpacing: 14,
                   children: [
-                    for (final device in _devices)
+                    for (var i = 0; i < devices.length; i++)
                       _DeviceGridCard(
-                        entry: device,
-                        onTap: () => context.push('/devices/${device.name}'),
+                        name: devices[i].name,
+                        iconAsset: deviceIconAssetFor(i),
+                        onTap: () => context.push('/devices/${devices[i].name}'),
                       ),
                     _AddDeviceGridCard(
                       onTap: () => context.push('/devices/add'),
@@ -86,13 +72,6 @@ class DevicesScreen extends StatelessWidget {
   }
 }
 
-class _DeviceEntry {
-  const _DeviceEntry({required this.name, required this.iconAsset});
-
-  final String name;
-  final String iconAsset;
-}
-
 /// 그리드 카드 한 칸의 공통 크기. 화면 폭(402) - 좌우 패딩(36*2) - 카드
 /// 사이 간격(14) 을 2로 나눈 값과 대략 맞춘 고정 폭이다.
 const _kCardWidth = 159.5;
@@ -100,9 +79,14 @@ const _kCardHeight = 157.0;
 
 /// 등록된 기기 카드 한 장: 로봇 아이콘 + 이름 + 우측 상단 "더보기" 화살표.
 class _DeviceGridCard extends StatelessWidget {
-  const _DeviceGridCard({required this.entry, required this.onTap});
+  const _DeviceGridCard({
+    required this.name,
+    required this.iconAsset,
+    required this.onTap,
+  });
 
-  final _DeviceEntry entry;
+  final String name;
+  final String iconAsset;
   final VoidCallback onTap;
 
   @override
@@ -133,12 +117,12 @@ class _DeviceGridCard extends StatelessWidget {
                 child: SizedBox(
                   width: 86,
                   height: 89,
-                  child: AssetIcon(entry.iconAsset),
+                  child: AssetIcon(iconAsset),
                 ),
               ),
             ),
             Text(
-              entry.name,
+              name,
               style: const TextStyle(
                 color: kDeviceOverviewLabelColor,
                 fontSize: 13,

@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 import 'widgets/labeled_field_row.dart';
 
 /// Figma: 예소 / "연결된 기기" (node-id 392:5220, "앱 초안 3" 프레임 안,
 /// 이름 없는 "iPhone 17 - 72" 프레임으로 저장돼 있었다). 홈 화면과 기기
 /// 상세 화면의 "연결된 기기" 카드를 누르면 도착한다.
 ///
-/// WIFI 정보(그 WIFI에 새 기기를 연결할 때 필요)와, 지금 연결된 가족
-/// 구성원 기기 목록을 보여준다. "+ 연결 기기 추가"는
+/// WIFI 정보(그 WIFI에 새 기기를 연결할 때 필요)와, [deviceListProvider]가
+/// 갖고 있는 실제 연결된 기기 목록을 보여준다. "+ 연결 기기 추가"는
 /// [AddConnectedDeviceScreen](Figma "iPhone 17 - 74/75")으로 이동한다.
-class ConnectedDevicesScreen extends StatelessWidget {
+class ConnectedDevicesScreen extends ConsumerWidget {
   const ConnectedDevicesScreen({super.key});
 
-  static const _members = [
-    ('지예님의 기기', Color(0xFFC8E093)),
-    ('예담님의 기기', Color(0xFFE1E1E1)),
-    ('예소님의 기기', Color(0xFFAA97D0)),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final devices = ref.watch(deviceListProvider).value ?? const [];
     final idController = TextEditingController(text: 'U+Net1024');
     final pwController = TextEditingController(text: '1000006315');
 
@@ -61,7 +58,7 @@ class ConnectedDevicesScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (_members.isNotEmpty) ...[
+              if (devices.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
@@ -85,28 +82,31 @@ class ConnectedDevicesScreen extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            '${_members.length}개 기기 연결중',
+                            '${devices.length}개 기기 연결중',
                             style: const TextStyle(color: kDeviceOverviewCaptionColor, fontSize: 13),
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
-                      for (final member in _members) ...[
+                      for (var i = 0; i < devices.length; i++) ...[
                         Row(
                           children: [
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: BoxDecoration(color: member.$2, shape: BoxShape.circle),
+                              decoration: BoxDecoration(
+                                color: deviceDotColorFor(i),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              member.$1,
+                              '${devices[i].name}님의 기기',
                               style: const TextStyle(color: kDeviceOverviewCaptionColor, fontSize: 14),
                             ),
                           ],
                         ),
-                        if (member != _members.last) const SizedBox(height: 10),
+                        if (i < devices.length - 1) const SizedBox(height: 10),
                       ],
                     ],
                   ),

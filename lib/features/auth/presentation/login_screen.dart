@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../onboarding/data/onboarding_providers.dart';
+import '../../../core/network/api_exception.dart';
+import '../data/auth_providers.dart';
 
 /// Figma: 예소 / 앱 초안 / Group 451 (node-id 279:1832) 의 로그아웃 화면.
 ///
@@ -11,9 +12,14 @@ import '../../onboarding/data/onboarding_providers.dart';
 /// 이메일 로그인만 사용하기로 해서 버튼 영역을 이메일/비밀번호 입력 폼으로
 /// 바꿨다. 로고, 하단 회원가입/아이디·비밀번호 찾기 링크는 디자인 그대로 유지.
 ///
-/// 로그인에 성공하면 이 계정에 보호자 정보가 저장돼 있는지를 확인해서,
-/// 로그인 내역이 없는 최초 로그인이면 초기 설정(보호자 정보) 화면으로,
-/// 이미 설정을 마친 계정이면 바로 홈으로 보낸다.
+/// 로그인(`POST /auth/login`)에 성공하면 `GET /users/me`로 이 계정의
+/// 보호자 성명이 저장돼 있는지를 확인해서, 아직 없는(최초 로그인) 계정이면
+/// 초기 설정(보호자 정보) 화면으로, 이미 있으면 바로 홈으로 보낸다
+/// (`docs/API.md` 5장 — `name`이 `null`이면 온보딩 1차 미완료).
+///
+/// 회원가입(`POST /auth/signup`) 화면은 아직 없어서, 이 폼은 이미 가입된
+/// 계정으로 로그인하는 것만 가능하다 — "회원가입" 링크는 그래서 지금도
+/// 반응하지 않는다.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -27,6 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -37,9 +44,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final hasGuardianInfo = await ref.read(onboardingRepositoryProvider).hasGuardianInfo();
-    if (!mounted) return;
-    context.go(hasGuardianInfo ? '/' : '/onboarding/guardian-info');
+    setState(() => _submitting = true);
+    try {
+      await ref.read(authRepositoryProvider).login(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+      // 로그인 응답에는 온보딩 완료 여부를 알려주는 name이 없다(4장) —
+      // 로그인 직후 한 번 더 불러야 한다(5장).
+      final me = await ref.read(userRepositoryProvider).getMe();
+      if (!mounted) return;
+      context.go(me.name == null ? '/onboarding/guardian-info' : '/');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -93,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _submit,
+                        onPressed: _submitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _brandBlue,
                           foregroundColor: Colors.white,
@@ -101,7 +122,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(19),
                           ),
                         ),
-                        child: const Text('로그인'),
+                        child: _submitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('로그인'),
                       ),
                     ),
                   ],

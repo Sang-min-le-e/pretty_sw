@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/pairing_glow.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 import 'widgets/labeled_field_row.dart';
 
 /// Figma: 예소 / "8-6 기기 추가하기" (node-id 405:6823, 405:6897, "앱 초안
@@ -14,20 +16,22 @@ import 'widgets/labeled_field_row.dart';
 /// `core/ble/ble_service.dart`에 GATT 서비스 UUID가 없어서 연결돼 있지
 /// 않다(다른 팀의 스펙 대기 중, CLAUDE.md 참고) — 그래서 1단계는 몇 초
 /// 기다리는 척만 하고 바로 "다음"을 누를 수 있게 해둔다.
-class AddDeviceScreen extends StatefulWidget {
+class AddDeviceScreen extends ConsumerStatefulWidget {
   const AddDeviceScreen({super.key});
 
   @override
-  State<AddDeviceScreen> createState() => _AddDeviceScreenState();
+  ConsumerState<AddDeviceScreen> createState() => _AddDeviceScreenState();
 }
 
-class _AddDeviceScreenState extends State<AddDeviceScreen> {
+class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   int _step = 0;
+  final _nameController = TextEditingController();
   final _wifiIdController = TextEditingController(text: 'U+Net1024');
   final _wifiPwController = TextEditingController();
 
   @override
   void dispose() {
+    _nameController.dispose();
     _wifiIdController.dispose();
     _wifiPwController.dispose();
     super.dispose();
@@ -84,9 +88,21 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
               ),
               Expanded(
                 child: _step == 0 ? _ScanningStep(onNext: () => setState(() => _step = 1)) : _WifiStep(
+                  nameController: _nameController,
                   idController: _wifiIdController,
                   pwController: _wifiPwController,
-                  onDone: () => context.go('/devices'),
+                  onDone: () async {
+                    final name = _nameController.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('기기 이름을 입력해주세요')),
+                      );
+                      return;
+                    }
+                    await ref.read(deviceActionsProvider).addDevice(name);
+                    if (!context.mounted) return;
+                    context.go('/devices');
+                  },
                 ),
               ),
             ],
@@ -139,11 +155,13 @@ class _ScanningStep extends StatelessWidget {
 
 class _WifiStep extends StatelessWidget {
   const _WifiStep({
+    required this.nameController,
     required this.idController,
     required this.pwController,
     required this.onDone,
   });
 
+  final TextEditingController nameController;
   final TextEditingController idController;
   final TextEditingController pwController;
   final VoidCallback onDone;
@@ -154,6 +172,14 @@ class _WifiStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 24),
+        // 실제 페어링/텔레메트리는 없지만, 홈 화면과 기기 관리 화면이
+        // 이 기기를 누구 것으로 표시할지는 필요해서 이름을 직접 받는다.
+        LabeledFieldRow(
+          label: '기기 이름',
+          controller: nameController,
+          hint: '예: 지예',
+        ),
+        const SizedBox(height: 12),
         LabeledFieldRow(label: 'WIFI 선택', controller: idController, trailingChevron: true),
         const SizedBox(height: 12),
         LabeledFieldRow(

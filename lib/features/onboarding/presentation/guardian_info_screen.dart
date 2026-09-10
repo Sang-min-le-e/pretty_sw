@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/onboarding_providers.dart';
+import '../../../core/network/api_exception.dart';
+import '../../auth/data/auth_providers.dart';
 import 'widgets/step_dots.dart';
 
 /// Figma: 예소 / 앱 초안 / Group 453 (node-id 279:1891) — 초기 설정 1단계.
 ///
 /// 로그인 내역이 없는 계정이 처음 로그인했을 때 보여주는 초기 설정 흐름의
-/// 첫 화면으로, 보호자 이름과 자녀와의 관계를 입력받는다.
+/// 첫 화면으로, 보호자 이름을 입력받아 `PATCH /users/me`로 저장한다
+/// (`docs/API.md` 5장). "자녀와의 관계"는 원래 이 화면에 있었지만,
+/// 백엔드가 그 값을 자녀 등록(`POST /children`)에서 받도록 설계돼 있어서
+/// (그리고 PARENT/ADMIN 2개로 제한돼 있어서) 다음 화면(자녀 정보)으로
+/// 옮겼다.
 class GuardianInfoScreen extends ConsumerStatefulWidget {
   const GuardianInfoScreen({super.key});
 
@@ -22,11 +27,9 @@ class _GuardianInfoScreenState extends ConsumerState<GuardianInfoScreen> {
   static const _borderColor = Color(0xFFD9D9D9);
   static const _brandBlue = Color(0xFF4ABEFF);
 
-  static const _relationships = ['부', '모', '조부모', '기타'];
-
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  String? _relationship;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -52,12 +55,17 @@ class _GuardianInfoScreenState extends ConsumerState<GuardianInfoScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(onboardingRepositoryProvider).saveGuardianInfo(
-          name: _nameController.text,
-          relationship: _relationship!,
-        );
-    if (!mounted) return;
-    context.push('/onboarding/child-info');
+    setState(() => _submitting = true);
+    try {
+      await ref.read(userRepositoryProvider).updateMe(name: _nameController.text);
+      if (!mounted) return;
+      context.push('/onboarding/child-info');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -107,34 +115,24 @@ class _GuardianInfoScreenState extends ConsumerState<GuardianInfoScreen> {
                   validator: (value) =>
                       (value == null || value.isEmpty) ? '보호자 성명을 입력해주세요' : null,
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  '자녀와의 관계',
-                  style: TextStyle(color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _relationship,
-                  decoration: _fieldDecoration('선택하세요'),
-                  icon: const Icon(Icons.keyboard_arrow_down, color: _hintColor),
-                  items: _relationships
-                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                      .toList(),
-                  onChanged: (value) => setState(() => _relationship = value),
-                  validator: (value) => value == null ? '자녀와의 관계를 선택해주세요' : null,
-                ),
                 const Spacer(flex: 5),
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _submitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _brandBlue,
                       foregroundColor: Colors.white,
                       shape: const StadiumBorder(),
                     ),
-                    child: const Text('다음으로', style: TextStyle(fontSize: 22)),
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('다음으로', style: TextStyle(fontSize: 22)),
                   ),
                 ),
                 const SizedBox(height: 16),
