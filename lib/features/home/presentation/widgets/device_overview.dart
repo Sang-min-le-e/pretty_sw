@@ -428,6 +428,7 @@ class ConnectedDevicesCard extends ConsumerWidget {
       decoration: deviceCardDecoration(),
       padding: const EdgeInsets.fromLTRB(25, 14, 25, 14),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
