@@ -11,7 +11,7 @@ final appTheme = ThemeData(
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      minimumSize: const Size(88, 56),
+      minimumSize: Size.zero,
       textStyle: const TextStyle(fontSize: 20),
     ),
   ),
