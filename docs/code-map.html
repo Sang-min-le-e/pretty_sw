@@ -364,7 +364,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 <section>
   <span class="eyebrow">화면 흐름</span>
   <h2>30개 경로가 이어지는 방식</h2>
-  <p>모든 경로는 <code>lib/app/router.dart</code> 한 파일에 있다. 앱을 켜면 항상 로그인 화면을 지나고(자동 로그인 없음), 서버의 <code>GET /users/me</code> 응답에 이름이 비어 있으면 최초 설정 3단계로 간다.</p>
+  <p>모든 경로는 <code>lib/app/router.dart</code> 한 파일에 있다. 앱을 켜면 항상 로그인 화면을 지나고(자동 로그인 없음), 서버의 로그인 응답(<code>user.name</code>)에 이름이 비어 있으면 최초 설정 3단계로 간다.</p>
   <div class="legend"><span class="chip c-server">서버 데이터</span><span class="chip c-local">Hive 데이터</span><span class="chip c-static">데이터 연결 없음</span></div>
 
   <div class="panel" style="display:grid; gap:12px">
@@ -484,7 +484,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <tr><th>API</th><th>쓰는 화면</th></tr>
         <tr><td><code>POST /auth/login</code></td><td>로그인</td></tr>
         <tr><td><code>POST /auth/logout</code></td><td>내 정보, 사용자 설정</td></tr>
-        <tr><td><code>GET /users/me</code></td><td>로그인 분기, 내 정보 3곳</td></tr>
+        <tr><td><code>GET /users/me</code></td><td>내 정보 3곳</td></tr>
         <tr><td><code>PATCH /users/me</code></td><td>온보딩 1, 프로필 수정</td></tr>
         <tr><td><code>POST /children</code></td><td>온보딩 2</td></tr>
         <tr><td><code>POST /auth/signup</code></td><td><span class="chip c-static">화면 없음</span></td></tr>

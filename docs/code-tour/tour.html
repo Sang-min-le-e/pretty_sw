@@ -75,6 +75,8 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 
 /* stop */
 .stop { display: grid; gap: 22px; min-width: 0; }
+/* display:grid above would otherwise override the [hidden] attribute, leaving every stop visible */
+.stop[hidden] { display: none; }
 .stop-head { display: grid; gap: 6px; }
 .path code { color: var(--accent-ink); font-size: 13px; }
 .path { color: var(--muted); font-size: 13px; }
@@ -479,7 +481,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
   <header class="stop-head">
     <span class="eyebrow">정류장 6 / 14</span>
     <h2>로그인 화면과 _submit()</h2>
-    <p class="path"><code>lib/features/auth/presentation/login_screen.dart</code> · 187줄</p>
+    <p class="path"><code>lib/features/auth/presentation/login_screen.dart</code> · 180줄</p>
     <p class="arrive"><b>어떻게 왔나</b> <code>splash_screen.dart</code> 22줄 <code>context.go('/login')</code> → <code>router.dart</code> 51줄 <code>LoginScreen()</code>에서 왔습니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tk">import</span> <span class="ts">&#x27;package:flutter/material.dart&#x27;</span>;
@@ -487,154 +489,145 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">3</span><span class="tk">import</span> <span class="ts">&#x27;package:flutter_svg/flutter_svg.dart&#x27;</span>;
 <span class="ln">4</span><span class="tk">import</span> <span class="ts">&#x27;package:go_router/go_router.dart&#x27;</span>;
 <span class="ln">5</span> </code></pre><div class="note"><span class="rng">1–5줄</span><p>Flutter 위젯, Riverpod(provider 꺼내기), SVG, 화면 이동 패키지.</p></div></div><div class="row"><pre class="code"><code><span class="ln">6</span><span class="tk">import</span> <span class="ts">&#x27;../../../core/network/api_exception.dart&#x27;</span>;
-<span class="ln">7</span><span class="tk">import</span> <span class="ts">&#x27;../data/auth_providers.dart&#x27;</span>;
-<span class="ln">8</span> </code></pre><div class="note"><span class="rng">6–8줄</span><p>우리 코드 두 개. <code>api_exception.dart</code>는 58줄에서 서버 오류를 잡을 때, <code>auth_providers.dart</code>는 49·55줄에서 로그인/내 정보 기능을 꺼낼 때 씁니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">9</span><span class="tc">/// Figma: 예소 / 앱 초안 / Group 451 (node-id 279:1832) 의 로그아웃 화면.</span>
+<span class="ln">7</span><span class="tk">import</span> <span class="ts">&#x27;../data/auth_providers.dart&#x27;</span>;</code></pre><div class="note"><span class="rng">6–7줄</span><p>우리 코드 두 개. <code>api_exception.dart</code>는 51줄에서 서버 오류를 잡을 때, <code>auth_providers.dart</code>는 45줄에서 로그인 기능을 꺼낼 때 씁니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">9</span><span class="tc">/// Figma: 예소 / 앱 초안 / Group 451 (node-id 279:1832) 의 로그아웃 화면.</span>
 <span class="ln">10</span><span class="tc">///</span>
-<span class="ln">11</span><span class="tc">/// 원본 디자인은 카카오/네이버/애플/구글 소셜 로그인 버튼이지만, 실제로는</span>
-<span class="ln">12</span><span class="tc">/// 이메일 로그인만 사용하기로 해서 버튼 영역을 이메일/비밀번호 입력 폼으로</span>
-<span class="ln">13</span><span class="tc">/// 바꿨다. 로고, 하단 회원가입/아이디·비밀번호 찾기 링크는 디자인 그대로 유지.</span>
-<span class="ln">14</span><span class="tc">///</span>
-<span class="ln">15</span><span class="tc">/// 로그인(`POST /auth/login`)에 성공하면 `GET /users/me`로 이 계정의</span>
-<span class="ln">16</span><span class="tc">/// 보호자 성명이 저장돼 있는지를 확인해서, 아직 없는(최초 로그인) 계정이면</span>
-<span class="ln">17</span><span class="tc">/// 초기 설정(보호자 정보) 화면으로, 이미 있으면 바로 홈으로 보낸다</span>
-<span class="ln">18</span><span class="tc">/// (`docs/API.md` 5장 — `name`이 `null`이면 온보딩 1차 미완료).</span>
-<span class="ln">19</span><span class="tc">///</span>
-<span class="ln">20</span><span class="tc">/// 회원가입(`POST /auth/signup`) 화면은 아직 없어서, 이 폼은 이미 가입된</span>
-<span class="ln">21</span><span class="tc">/// 계정으로 로그인하는 것만 가능하다 — &quot;회원가입&quot; 링크는 그래서 지금도</span>
-<span class="ln">22</span><span class="tc">/// 반응하지 않는다.</span></code></pre><div class="note"><span class="rng">9–22줄</span><p>문서 주석. 이 화면의 역할을 요약합니다. 원래 디자인은 소셜 로그인이었는데 이메일 로그인으로 바꿨고, 로그인 성공 후 이름 유무로 갈 곳을 정한다는 내용입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">23</span><span class="tk">class</span> <span class="tt">LoginScreen</span> <span class="tk">extends</span> <span class="tt">ConsumerStatefulWidget</span> {
-<span class="ln">24</span>  <span class="tk">const</span> <span class="tt">LoginScreen</span>({<span class="tk">super</span>.key});
-<span class="ln">25</span> 
-<span class="ln">26</span>  <span class="tk">@override</span>
-<span class="ln">27</span>  <span class="tt">ConsumerState</span>&lt;<span class="tt">LoginScreen</span>&gt; createState() =&gt; <span class="tt">_LoginScreenState</span>();
-<span class="ln">28</span>}</code></pre><div class="note"><span class="rng">23–28줄</span><p>입력 중인 글자, 로딩 중 여부처럼 바뀌는 값이 있어서 Stateful입니다. 스플래시와 다른 점은 <code>Consumer</code>가 붙었다는 것입니다. <code>ConsumerStatefulWidget</code>을 쓰면 State 안에서 <code>ref</code>로 Riverpod provider를 꺼낼 수 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">30</span><span class="tk">class</span> <span class="tt">_LoginScreenState</span> <span class="tk">extends</span> <span class="tt">ConsumerState</span>&lt;<span class="tt">LoginScreen</span>&gt; {
-<span class="ln">31</span>  <span class="tk">static</span> <span class="tk">const</span> _brandBlue = <span class="tt">Color</span>(<span class="tn">0xFF4ABEFF</span>);</code></pre><div class="note"><span class="rng">30–31줄</span><p>실제 내용 클래스. <code>static const _brandBlue</code>는 이 클래스 전체가 공유하는 고정 색(Figma 하늘색)입니다. <code>0xFF4ABEFF</code>에서 <code>FF</code>는 불투명도, <code>4ABEFF</code>는 색입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">33</span>  <span class="tk">final</span> _formKey = <span class="tt">GlobalKey</span>&lt;<span class="tt">FormState</span>&gt;();</code></pre><div class="note"><span class="rng">33줄</span><p><code>_formKey</code>는 입력 폼 전체를 가리키는 손잡이입니다. 46줄에서 "폼 안의 칸들을 검사해라"라고 명령할 때 씁니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>< > 제네릭</b><p><code>List&lt;String&gt;</code>은 "문자열이 담긴 리스트", <code>Future&lt;AuthUser&gt;</code>는 "나중에 AuthUser가 나오는 상자"처럼, 꺾쇠 안에 "무엇을 담는지"를 적는 문법입니다. <code>Map&lt;String, dynamic&gt;</code>은 "키는 문자열, 값은 아무 타입"인 사전입니다(서버 JSON이 이 모양으로 들어옵니다).</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">34</span>  <span class="tk">final</span> _emailController = <span class="tt">TextEditingController</span>();
-<span class="ln">35</span>  <span class="tk">final</span> _passwordController = <span class="tt">TextEditingController</span>();</code></pre><div class="note"><span class="rng">34–35줄</span><p>이메일·비밀번호 입력 칸의 글자를 담는 컨트롤러. 50·51줄에서 <code>.text</code>로 입력값을 꺼냅니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">36</span>  bool _submitting = <span class="tk">false</span>;
-<span class="ln">37</span> </code></pre><div class="note"><span class="rng">36–37줄</span><p>로그인 요청 중인지 기록하는 값. <code>true</code>면 버튼이 빙글빙글 로딩으로 바뀝니다(125줄).</p></div></div><div class="row"><pre class="code"><code><span class="ln">38</span>  <span class="tk">@override</span>
-<span class="ln">39</span>  <span class="tk">void</span> dispose() {
-<span class="ln">40</span>    _emailController.dispose();
-<span class="ln">41</span>    _passwordController.dispose();
-<span class="ln">42</span>    <span class="tk">super</span>.dispose();
-<span class="ln">43</span>  }</code></pre><div class="note"><span class="rng">38–43줄</span><p>화면이 사라질 때 컨트롤러 두 개를 정리합니다. 정리하지 않으면 메모리가 새는 것이 Flutter 규칙입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">45</span>  <span class="tt">Future</span>&lt;<span class="tk">void</span>&gt; _submit() <span class="tk">async</span> {</code></pre><div class="note"><span class="rng">45줄</span><p><b>로그인 버튼을 누르면 실행되는 함수</b>(117줄에서 연결). 서버를 기다리므로 <code>async</code>이고, 돌려주는 값이 없어 <code>Future&lt;void&gt;</code>입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">46</span>    <span class="tk">if</span> (!_formKey.currentState!.validate()) <span class="tk">return</span>;</code></pre><div class="note"><span class="rng">46줄</span><p>폼 안의 칸들에게 검사를 시킵니다(96·110줄의 <code>validator</code>). 하나라도 비어 있으면 <code>false</code>라서 <code>return</code>으로 함수를 바로 끝냅니다. <code>!</code>는 "<code>currentState</code>는 null이 아니다"라는 보증, 앞의 <code>!</code>(<code>!_formKey</code>)는 "아니면"(논리 부정)입니다. 같은 기호가 두 가지 뜻으로 쓰입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">47</span>    setState(() =&gt; _submitting = <span class="tk">true</span>);</code></pre><div class="note"><span class="rng">47줄</span><p><code>_submitting</code>을 <code>true</code>로 바꾸고 <code>setState</code>로 화면을 다시 그리게 합니다. 버튼이 로딩 표시로 바뀝니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">48</span>    <span class="tk">try</span> {</code></pre><div class="note"><span class="rng">48줄</span><p>여기서부터 실패할 수 있는 일을 시작합니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>try / on ... catch / finally</b><p><code>try { }</code> 안에서 문제가 생겨 예외(Exception)가 던져지면, 그 아래 줄은 건너뛰고 해당 종류를 받는 <code>on 타입 catch (e) { }</code>로 점프합니다. <code>finally { }</code>는 성공하든 실패하든 마지막에 항상 실행됩니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">49</span>      <span class="tk">await</span> ref.read(authRepositoryProvider).login(
-<span class="ln">50</span>            email: _emailController.text,
-<span class="ln">51</span>            password: _passwordController.text,
-<span class="ln">52</span>          );</code></pre><div class="note"><span class="rng">49–52줄</span><p><b>다음 정류장으로 가는 줄.</b> <code>ref.read(authRepositoryProvider)</code>로 로그인 담당 객체를 꺼내 <code>.login(email:, password:)</code>을 부르고, 서버 응답이 올 때까지 <code>await</code>로 기다립니다. 이 한 줄 뒤에서 무슨 일이 일어나는지 다음 정류장부터 따라갑니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>Riverpod Provider</b><p>앱 여러 곳에서 같이 쓰는 객체를 만들어 두는 "공용 보관함"입니다. <code>final xProvider = Provider((ref) => 객체)</code>로 만드는 법을 적어두면, 처음 필요할 때 한 번 만들어서 계속 같은 것을 돌려줍니다. 화면에서는 <code>ref.read(xProvider)</code>(지금 한 번 꺼내기) 또는 <code>ref.watch(xProvider)</code>(꺼내고, 바뀌면 다시 그리기)로 꺼냅니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">53</span>      <span class="tc">// 로그인 응답에는 온보딩 완료 여부를 알려주는 name이 없다(4장) —</span>
-<span class="ln">54</span>      <span class="tc">// 로그인 직후 한 번 더 불러야 한다(5장).</span>
-<span class="ln">55</span>      <span class="tk">final</span> me = <span class="tk">await</span> ref.read(userRepositoryProvider).getMe();</code></pre><div class="note"><span class="rng">53–55줄</span><p>로그인 응답에는 이름이 없어서 <code>GET /users/me</code>로 내 정보를 한 번 더 받아옵니다. 결과(<code>AuthUser</code>)를 <code>me</code>에 담습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">56</span>      <span class="tk">if</span> (!mounted) <span class="tk">return</span>;</code></pre><div class="note"><span class="rng">56줄</span><p>서버를 기다리는 사이 사용자가 화면을 떠났을 수 있으므로 확인합니다. 스플래시의 <code>mounted</code>와 같은 안전장치입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">57</span>      context.go(me.name == <span class="tk">null</span> ? <span class="ts">&#x27;/onboarding/guardian-info&#x27;</span> : <span class="ts">&#x27;/&#x27;</span>);</code></pre><div class="note"><span class="rng">57줄</span><p><b>이 앱에서 가장 중요한 분기.</b> <code>조건 ? A : B</code>는 "조건이 참이면 A, 아니면 B"입니다. 이름이 비어 있으면(첫 로그인) 온보딩으로, 있으면 홈(<code>/</code>)으로 갑니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">58</span>    } <span class="tk">on</span> <span class="tt">ApiException</span> <span class="tk">catch</span> (e) {
-<span class="ln">59</span>      <span class="tk">if</span> (!mounted) <span class="tk">return</span>;
-<span class="ln">60</span>      <span class="tt">ScaffoldMessenger</span>.of(context).showSnackBar(<span class="tt">SnackBar</span>(content: <span class="tt">Text</span>(e.message)));</code></pre><div class="note"><span class="rng">58–60줄</span><p>49~55줄 어디서든 <code>ApiException</code>이 던져지면 여기로 점프합니다. 서버가 준 한국어 메시지(<code>e.message</code>)를 화면 아래 스낵바(잠깐 떴다 사라지는 알림)로 보여줍니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">61</span>    } <span class="tk">finally</span> {
-<span class="ln">62</span>      <span class="tk">if</span> (mounted) setState(() =&gt; _submitting = <span class="tk">false</span>);
-<span class="ln">63</span>    }
-<span class="ln">64</span>  }</code></pre><div class="note"><span class="rng">61–64줄</span><p>성공이든 실패든 마지막에 로딩 표시를 끕니다. 성공해서 다른 화면으로 갔다면 <code>mounted</code>가 false라 건너뜁니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">66</span>  <span class="tk">@override</span>
-<span class="ln">67</span>  <span class="tt">Widget</span> build(<span class="tt">BuildContext</span> context) {
-<span class="ln">68</span>    <span class="tk">return</span> <span class="tt">Scaffold</span>(
-<span class="ln">69</span>      backgroundColor: <span class="tt">Colors</span>.white,
-<span class="ln">70</span>      body: <span class="tt">SafeArea</span>(</code></pre><div class="note"><span class="rng">66–70줄</span><p>여기부터 화면 모양입니다. <code>Scaffold</code>(화면 틀) → <code>SafeArea</code>(노치·상태바를 피해 안쪽에 그리기).</p></div></div><div class="row"><pre class="code"><code><span class="ln">71</span>        child: <span class="tt">Form</span>(
-<span class="ln">72</span>          key: _formKey,
-<span class="ln">73</span>          child: <span class="tt">Column</span>(
-<span class="ln">74</span>            children: [</code></pre><div class="note"><span class="rng">71–74줄</span><p><code>Form</code>이 입력 칸들을 묶고, 33줄의 <code>_formKey</code>를 달아둡니다. <code>Column</code>은 자식들을 위에서 아래로 쌓습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">75</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">3</span>),
-<span class="ln">76</span>              <span class="tt">SizedBox</span>(
-<span class="ln">77</span>                width: <span class="tn">140</span>,
-<span class="ln">78</span>                height: <span class="tn">155</span>,
-<span class="ln">79</span>                child: <span class="tt">SvgPicture</span>.asset(<span class="ts">&#x27;assets/images/splash_logo.svg&#x27;</span>),
-<span class="ln">80</span>              ),
-<span class="ln">81</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">2</span>),</code></pre><div class="note"><span class="rng">75–81줄</span><p><code>Spacer(flex: 3)</code>와 <code>Spacer(flex: 2)</code>는 남는 세로 공간을 3:2로 나눠 차지하는 빈칸입니다. 그 사이에 로고(140×155)가 들어갑니다. 화면 크기가 달라도 비율이 유지됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">82</span>              <span class="tt">Padding</span>(
-<span class="ln">83</span>                padding: <span class="tk">const</span> <span class="tt">EdgeInsets</span>.symmetric(horizontal: <span class="tn">32</span>),
-<span class="ln">84</span>                child: <span class="tt">Column</span>(
-<span class="ln">85</span>                  children: [</code></pre><div class="note"><span class="rng">82–85줄</span><p>좌우 32 여백 안에 입력 칸들을 또 세로로 쌓습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">86</span>                    <span class="tt">TextFormField</span>(
-<span class="ln">87</span>                      controller: _emailController,
-<span class="ln">88</span>                      keyboardType: <span class="tt">TextInputType</span>.emailAddress,
-<span class="ln">89</span>                      decoration: <span class="tk">const</span> <span class="tt">InputDecoration</span>(
-<span class="ln">90</span>                        labelText: <span class="ts">&#x27;이메일&#x27;</span>,
-<span class="ln">91</span>                        labelStyle: <span class="tt">TextStyle</span>(color: <span class="tt">Color</span>(<span class="tn">0xFFBDBDBD</span>)),
-<span class="ln">92</span>                        border: <span class="tt">OutlineInputBorder</span>(
-<span class="ln">93</span>                          borderRadius: <span class="tt">BorderRadius</span>.all(<span class="tt">Radius</span>.circular(<span class="tn">19</span>)),
-<span class="ln">94</span>                        ),
-<span class="ln">95</span>                      ),
-<span class="ln">96</span>                      validator: (value) =&gt;
-<span class="ln">97</span>                          (value == <span class="tk">null</span> || value.isEmpty) ? <span class="ts">&#x27;이메일을 입력해주세요&#x27;</span> : <span class="tk">null</span>,
-<span class="ln">98</span>                    ),</code></pre><div class="note"><span class="rng">86–98줄</span><p>이메일 입력 칸. 34줄의 컨트롤러를 연결하고, 키보드를 이메일용으로, 테두리를 둥글게(반지름 19). <code>validator</code>는 46줄에서 검사할 때 불리는 함수로, 비어 있으면 오류 문구를, 괜찮으면 <code>null</code>을 돌려줍니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">99</span>                    <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">16</span>),</code></pre><div class="note"><span class="rng">99줄</span><p>칸 사이 16 높이의 빈 상자. Flutter에서 간격은 이렇게 빈 <code>SizedBox</code>로 만듭니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">100</span>                    <span class="tt">TextFormField</span>(
-<span class="ln">101</span>                      controller: _passwordController,
-<span class="ln">102</span>                      obscureText: <span class="tk">true</span>,
-<span class="ln">103</span>                      decoration: <span class="tk">const</span> <span class="tt">InputDecoration</span>(
-<span class="ln">104</span>                        labelText: <span class="ts">&#x27;비밀번호&#x27;</span>,
-<span class="ln">105</span>                        labelStyle: <span class="tt">TextStyle</span>(color: <span class="tt">Color</span>(<span class="tn">0xFFBDBDBD</span>)),
-<span class="ln">106</span>                        border: <span class="tt">OutlineInputBorder</span>(
-<span class="ln">107</span>                          borderRadius: <span class="tt">BorderRadius</span>.all(<span class="tt">Radius</span>.circular(<span class="tn">19</span>)),
-<span class="ln">108</span>                        ),
-<span class="ln">109</span>                      ),
-<span class="ln">110</span>                      validator: (value) =&gt;
-<span class="ln">111</span>                          (value == <span class="tk">null</span> || value.isEmpty) ? <span class="ts">&#x27;비밀번호를 입력해주세요&#x27;</span> : <span class="tk">null</span>,
-<span class="ln">112</span>                    ),</code></pre><div class="note"><span class="rng">100–112줄</span><p>비밀번호 칸. <code>obscureText: true</code>로 글자를 ●로 가립니다. 나머지는 이메일 칸과 같습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">113</span>                    <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">24</span>),
-<span class="ln">114</span>                    <span class="tt">SizedBox</span>(
-<span class="ln">115</span>                      width: double.infinity,
-<span class="ln">116</span>                      child: <span class="tt">ElevatedButton</span>(
-<span class="ln">117</span>                        onPressed: _submitting ? <span class="tk">null</span> : _submit,</code></pre><div class="note"><span class="rng">113–117줄</span><p><b>로그인 버튼.</b> <code>width: double.infinity</code>로 가로를 꽉 채웁니다. <code>onPressed: _submitting ? null : _submit</code>은 "요청 중이면 null(누를 수 없음), 아니면 누를 때 45줄 <code>_submit</code> 실행"입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">118</span>                        style: <span class="tt">ElevatedButton</span>.styleFrom(
-<span class="ln">119</span>                          backgroundColor: _brandBlue,
-<span class="ln">120</span>                          foregroundColor: <span class="tt">Colors</span>.white,
-<span class="ln">121</span>                          shape: <span class="tt">RoundedRectangleBorder</span>(
-<span class="ln">122</span>                            borderRadius: <span class="tt">BorderRadius</span>.circular(<span class="tn">19</span>),
-<span class="ln">123</span>                          ),
-<span class="ln">124</span>                        ),</code></pre><div class="note"><span class="rng">118–124줄</span><p>버튼 색(하늘색 배경, 흰 글자)과 둥근 모서리.</p></div></div><div class="row"><pre class="code"><code><span class="ln">125</span>                        child: _submitting
-<span class="ln">126</span>                            ? <span class="tk">const</span> <span class="tt">SizedBox</span>(
-<span class="ln">127</span>                                width: <span class="tn">20</span>,
-<span class="ln">128</span>                                height: <span class="tn">20</span>,
-<span class="ln">129</span>                                child: <span class="tt">CircularProgressIndicator</span>(
-<span class="ln">130</span>                                  strokeWidth: <span class="tn">2</span>,
-<span class="ln">131</span>                                  color: <span class="tt">Colors</span>.white,
-<span class="ln">132</span>                                ),
-<span class="ln">133</span>                              )
-<span class="ln">134</span>                            : <span class="tk">const</span> <span class="tt">Text</span>(<span class="ts">&#x27;로그인&#x27;</span>),
-<span class="ln">135</span>                      ),
-<span class="ln">136</span>                    ),</code></pre><div class="note"><span class="rng">125–136줄</span><p>버튼 안에 보일 것. 요청 중이면 작은 로딩 원, 아니면 "로그인" 글자.</p></div></div><div class="row"><pre class="code"><code><span class="ln">137</span>                  ],
-<span class="ln">138</span>                ),
-<span class="ln">139</span>              ),
-<span class="ln">140</span>              <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">16</span>),</code></pre><div class="note"><span class="rng">137–140줄</span><p>괄호 닫기와 16 간격.</p></div></div><div class="row"><pre class="code"><code><span class="ln">141</span>              <span class="tt">Row</span>(
-<span class="ln">142</span>                mainAxisAlignment: <span class="tt">MainAxisAlignment</span>.center,
-<span class="ln">143</span>                children: [
-<span class="ln">144</span>                  <span class="tt">TextButton</span>(
-<span class="ln">145</span>                    onPressed: () {},
-<span class="ln">146</span>                    child: <span class="tk">const</span> <span class="tt">Text</span>(
-<span class="ln">147</span>                      <span class="ts">&#x27;회원가입&#x27;</span>,
-<span class="ln">148</span>                      style: <span class="tt">TextStyle</span>(
-<span class="ln">149</span>                        color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
-<span class="ln">150</span>                        decoration: <span class="tt">TextDecoration</span>.underline,
-<span class="ln">151</span>                      ),
-<span class="ln">152</span>                    ),
-<span class="ln">153</span>                  ),
-<span class="ln">154</span>                  <span class="tt">TextButton</span>(
-<span class="ln">155</span>                    onPressed: () {},
-<span class="ln">156</span>                    child: <span class="tk">const</span> <span class="tt">Text</span>(
-<span class="ln">157</span>                      <span class="ts">&#x27;아이디/비밀번호 찾기&#x27;</span>,
-<span class="ln">158</span>                      style: <span class="tt">TextStyle</span>(
-<span class="ln">159</span>                        color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
-<span class="ln">160</span>                        decoration: <span class="tt">TextDecoration</span>.underline,
-<span class="ln">161</span>                      ),
-<span class="ln">162</span>                    ),
-<span class="ln">163</span>                  ),
-<span class="ln">164</span>                ],
-<span class="ln">165</span>              ),</code></pre><div class="note"><span class="rng">141–165줄</span><p><code>Row</code>(가로로 나란히) 안에 "회원가입", "아이디/비밀번호 찾기" 글자 버튼. <code>onPressed: () {}</code>는 아무것도 안 하는 빈 함수라 지금은 눌러도 반응이 없습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">166</span>              <span class="tc">// 원래 Figma 목업이던 소셜 로그인 화면은 지워지지 않았다 —</span>
-<span class="ln">167</span>              <span class="tc">// 이 링크로 그 디자인을 그대로 볼 수 있게 남겨뒀다(자세한</span>
-<span class="ln">168</span>              <span class="tc">// 이유는 이 파일 위쪽 문서 주석 참고). 실제 로그인 수단은</span>
-<span class="ln">169</span>              <span class="tc">// 여전히 이메일뿐이다.</span>
-<span class="ln">170</span>              <span class="tt">TextButton</span>(
-<span class="ln">171</span>                onPressed: () =&gt; context.push(<span class="ts">&#x27;/login/social&#x27;</span>),
-<span class="ln">172</span>                child: <span class="tk">const</span> <span class="tt">Text</span>(
-<span class="ln">173</span>                  <span class="ts">&#x27;다른 방법으로 로그인&#x27;</span>,
-<span class="ln">174</span>                  style: <span class="tt">TextStyle</span>(
-<span class="ln">175</span>                    color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
-<span class="ln">176</span>                    decoration: <span class="tt">TextDecoration</span>.underline,
-<span class="ln">177</span>                  ),
-<span class="ln">178</span>                ),
-<span class="ln">179</span>              ),</code></pre><div class="note"><span class="rng">166–179줄</span><p>"다른 방법으로 로그인"을 누르면 <code>context.push('/login/social')</code>로 소셜 로그인 디자인 화면을 위에 쌓습니다. <code>go</code>는 화면을 갈아치우고, <code>push</code>는 위에 쌓아서 뒤로가기가 가능합니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">180</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">1</span>),
-<span class="ln">181</span>            ],
-<span class="ln">182</span>          ),
-<span class="ln">183</span>        ),
-<span class="ln">184</span>      ),
-<span class="ln">185</span>    );
-<span class="ln">186</span>  }
-<span class="ln">187</span>}</code></pre><div class="note"><span class="rng">180–187줄</span><p>아래쪽 빈칸(flex 1)과 괄호 닫기들.</p></div></div></div>
+<span class="ln">11</span><span class="tc">/// 로그인(`POST /auth/login`)에 성공하면 응답에 든 `user.name`으로 이 계정의</span>
+<span class="ln">12</span><span class="tc">/// 보호자 성명이 저장돼 있는지를 확인해서, 아직 없는(최초 로그인) 계정이면</span>
+<span class="ln">13</span><span class="tc">/// 초기 설정(보호자 정보) 화면으로, 이미 있으면 바로 홈으로 보낸다</span>
+<span class="ln">14</span><span class="tc">/// (`docs/API.md` 5장 — `name`이 `null`이면 온보딩 1차 미완료).</span></code></pre><div class="note"><span class="rng">9–14줄</span><p>문서 주석. 이 화면의 역할을 요약합니다. 로그인 성공 후 응답에 든 이름(<code>user.name</code>) 유무로 갈 곳을 정한다는 내용입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">15</span><span class="tk">class</span> <span class="tt">LoginScreen</span> <span class="tk">extends</span> <span class="tt">ConsumerStatefulWidget</span> {
+<span class="ln">16</span>  <span class="tk">const</span> <span class="tt">LoginScreen</span>({<span class="tk">super</span>.key});
+<span class="ln">17</span> 
+<span class="ln">18</span>  <span class="tk">@override</span>
+<span class="ln">19</span>  <span class="tt">ConsumerState</span>&lt;<span class="tt">LoginScreen</span>&gt; createState() =&gt; <span class="tt">_LoginScreenState</span>();
+<span class="ln">20</span>}</code></pre><div class="note"><span class="rng">15–20줄</span><p>입력 중인 글자, 로딩 중 여부처럼 바뀌는 값이 있어서 Stateful입니다. 스플래시와 다른 점은 <code>Consumer</code>가 붙었다는 것입니다. <code>ConsumerStatefulWidget</code>을 쓰면 State 안에서 <code>ref</code>로 Riverpod provider를 꺼낼 수 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">22</span><span class="tk">class</span> <span class="tt">_LoginScreenState</span> <span class="tk">extends</span> <span class="tt">ConsumerState</span>&lt;<span class="tt">LoginScreen</span>&gt; {
+<span class="ln">23</span>  <span class="tk">static</span> <span class="tk">const</span> _brandBlue = <span class="tt">Color</span>(<span class="tn">0xFF4ABEFF</span>);</code></pre><div class="note"><span class="rng">22–23줄</span><p>실제 내용 클래스. <code>static const _brandBlue</code>는 이 클래스 전체가 공유하는 고정 색(Figma 하늘색)입니다. <code>0xFF4ABEFF</code>에서 <code>FF</code>는 불투명도, <code>4ABEFF</code>는 색입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">25</span>  <span class="tk">final</span> _formKey = <span class="tt">GlobalKey</span>&lt;<span class="tt">FormState</span>&gt;();</code></pre><div class="note"><span class="rng">25줄</span><p><code>_formKey</code>는 입력 폼 전체를 가리키는 손잡이입니다. 38줄에서 "폼 안의 칸들을 검사해라"라고 명령할 때 씁니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>< > 제네릭</b><p><code>List&lt;String&gt;</code>은 "문자열이 담긴 리스트", <code>Future&lt;AuthUser&gt;</code>는 "나중에 AuthUser가 나오는 상자"처럼, 꺾쇠 안에 "무엇을 담는지"를 적는 문법입니다. <code>Map&lt;String, dynamic&gt;</code>은 "키는 문자열, 값은 아무 타입"인 사전입니다(서버 JSON이 이 모양으로 들어옵니다).</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">26</span>  <span class="tk">final</span> _emailController = <span class="tt">TextEditingController</span>();
+<span class="ln">27</span>  <span class="tk">final</span> _passwordController = <span class="tt">TextEditingController</span>();</code></pre><div class="note"><span class="rng">26–27줄</span><p>이메일·비밀번호 입력 칸의 글자를 담는 컨트롤러. 46·47줄에서 <code>.text</code>로 입력값을 꺼냅니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">28</span>  bool _submitting = <span class="tk">false</span>;</code></pre><div class="note"><span class="rng">28줄</span><p>로그인 요청 중인지 기록하는 값. <code>true</code>면 버튼이 빙글빙글 로딩으로 바뀝니다(118줄).</p></div></div><div class="row"><pre class="code"><code><span class="ln">30</span>  <span class="tk">@override</span>
+<span class="ln">31</span>  <span class="tk">void</span> dispose() {
+<span class="ln">32</span>    _emailController.dispose();
+<span class="ln">33</span>    _passwordController.dispose();
+<span class="ln">34</span>    <span class="tk">super</span>.dispose();
+<span class="ln">35</span>  }</code></pre><div class="note"><span class="rng">30–35줄</span><p>화면이 사라질 때 컨트롤러 두 개를 정리합니다. 정리하지 않으면 메모리가 새는 것이 Flutter 규칙입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">37</span>  <span class="tt">Future</span>&lt;<span class="tk">void</span>&gt; _submit() <span class="tk">async</span> {</code></pre><div class="note"><span class="rng">37줄</span><p><b>로그인 버튼을 누르면 실행되는 함수</b>(110줄에서 연결). 서버를 기다리므로 <code>async</code>이고, 돌려주는 값이 없어 <code>Future&lt;void&gt;</code>입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">38</span>    <span class="tk">if</span> (!_formKey.currentState!.validate()) <span class="tk">return</span>;</code></pre><div class="note"><span class="rng">38줄</span><p>폼 안의 칸들에게 검사를 시킵니다(89·103줄의 <code>validator</code>). 하나라도 비어 있으면 <code>false</code>라서 <code>return</code>으로 함수를 바로 끝냅니다. <code>!</code>는 "<code>currentState</code>는 null이 아니다"라는 보증, 앞의 <code>!</code>(<code>!_formKey</code>)는 "아니면"(논리 부정)입니다. 같은 기호가 두 가지 뜻으로 쓰입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">39</span>    setState(() =&gt; _submitting = <span class="tk">true</span>);</code></pre><div class="note"><span class="rng">39줄</span><p><code>_submitting</code>을 <code>true</code>로 바꾸고 <code>setState</code>로 화면을 다시 그리게 합니다. 버튼이 로딩 표시로 바뀝니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">40</span>    <span class="tk">try</span> {</code></pre><div class="note"><span class="rng">40줄</span><p>여기서부터 실패할 수 있는 일을 시작합니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>try / on ... catch / finally</b><p><code>try { }</code> 안에서 문제가 생겨 예외(Exception)가 던져지면, 그 아래 줄은 건너뛰고 해당 종류를 받는 <code>on 타입 catch (e) { }</code>로 점프합니다. <code>finally { }</code>는 성공하든 실패하든 마지막에 항상 실행됩니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">41</span>      <span class="tc">// login()은 서버가 로그인 응답에 담아 준 user(`docs/API.md` 4장)를</span>
+<span class="ln">42</span>      <span class="tc">// AuthUser로 바꿔 돌려준다. name이 null이면 온보딩 1차를 아직 안 마친</span>
+<span class="ln">43</span>      <span class="tc">// 계정이므로, GET /users/me를 한 번 더 부를 필요 없이 이 값으로 바로</span>
+<span class="ln">44</span>      <span class="tc">// 분기한다.</span></code></pre><div class="note"><span class="rng">41–44줄</span><p>주석. 서버가 로그인 응답에 <code>user</code>(이름 포함)를 담아 주므로, 내 정보(<code>GET /users/me</code>)를 한 번 더 부를 필요가 없다는 설명입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">45</span>      <span class="tk">final</span> user = <span class="tk">await</span> ref.read(authRepositoryProvider).login(
+<span class="ln">46</span>            email: _emailController.text,
+<span class="ln">47</span>            password: _passwordController.text,
+<span class="ln">48</span>          );</code></pre><div class="note"><span class="rng">45–48줄</span><p><b>다음 정류장으로 가는 줄.</b> <code>ref.read(authRepositoryProvider)</code>로 로그인 담당 객체를 꺼내 <code>.login(email:, password:)</code>을 부르고, 서버 응답이 올 때까지 <code>await</code>로 기다립니다. 결과(<code>AuthUser</code>)를 <code>user</code>에 담습니다. 이 한 줄 뒤에서 무슨 일이 일어나는지 다음 정류장부터 따라갑니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>Riverpod Provider</b><p>앱 여러 곳에서 같이 쓰는 객체를 만들어 두는 "공용 보관함"입니다. <code>final xProvider = Provider((ref) => 객체)</code>로 만드는 법을 적어두면, 처음 필요할 때 한 번 만들어서 계속 같은 것을 돌려줍니다. 화면에서는 <code>ref.read(xProvider)</code>(지금 한 번 꺼내기) 또는 <code>ref.watch(xProvider)</code>(꺼내고, 바뀌면 다시 그리기)로 꺼냅니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">49</span>      <span class="tk">if</span> (!mounted) <span class="tk">return</span>;</code></pre><div class="note"><span class="rng">49줄</span><p>서버를 기다리는 사이 사용자가 화면을 떠났을 수 있으므로 확인합니다. 스플래시의 <code>mounted</code>와 같은 안전장치입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">50</span>      context.go(user.name == <span class="tk">null</span> ? <span class="ts">&#x27;/onboarding/guardian-info&#x27;</span> : <span class="ts">&#x27;/&#x27;</span>);</code></pre><div class="note"><span class="rng">50줄</span><p><b>이 앱에서 가장 중요한 분기.</b> <code>조건 ? A : B</code>는 "조건이 참이면 A, 아니면 B"입니다. 이름이 비어 있으면(첫 로그인) 온보딩으로, 있으면 홈(<code>/</code>)으로 갑니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">51</span>    } <span class="tk">on</span> <span class="tt">ApiException</span> <span class="tk">catch</span> (e) {
+<span class="ln">52</span>      <span class="tk">if</span> (!mounted) <span class="tk">return</span>;
+<span class="ln">53</span>      <span class="tt">ScaffoldMessenger</span>.of(context).showSnackBar(<span class="tt">SnackBar</span>(content: <span class="tt">Text</span>(e.message)));</code></pre><div class="note"><span class="rng">51–53줄</span><p>45~48줄 어디서든 <code>ApiException</code>이 던져지면 여기로 점프합니다. 서버가 준 한국어 메시지(<code>e.message</code>)를 화면 아래 스낵바(잠깐 떴다 사라지는 알림)로 보여줍니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">54</span>    } <span class="tk">finally</span> {
+<span class="ln">55</span>      <span class="tk">if</span> (mounted) setState(() =&gt; _submitting = <span class="tk">false</span>);
+<span class="ln">56</span>    }
+<span class="ln">57</span>  }</code></pre><div class="note"><span class="rng">54–57줄</span><p>성공이든 실패든 마지막에 로딩 표시를 끕니다. 성공해서 다른 화면으로 갔다면 <code>mounted</code>가 false라 건너뜁니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">59</span>  <span class="tk">@override</span>
+<span class="ln">60</span>  <span class="tt">Widget</span> build(<span class="tt">BuildContext</span> context) {
+<span class="ln">61</span>    <span class="tk">return</span> <span class="tt">Scaffold</span>(
+<span class="ln">62</span>      backgroundColor: <span class="tt">Colors</span>.white,
+<span class="ln">63</span>      body: <span class="tt">SafeArea</span>(</code></pre><div class="note"><span class="rng">59–63줄</span><p>여기부터 화면 모양입니다. <code>Scaffold</code>(화면 틀) → <code>SafeArea</code>(노치·상태바를 피해 안쪽에 그리기).</p></div></div><div class="row"><pre class="code"><code><span class="ln">64</span>        child: <span class="tt">Form</span>(
+<span class="ln">65</span>          key: _formKey,
+<span class="ln">66</span>          child: <span class="tt">Column</span>(
+<span class="ln">67</span>            children: [</code></pre><div class="note"><span class="rng">64–67줄</span><p><code>Form</code>이 입력 칸들을 묶고, 25줄의 <code>_formKey</code>를 달아둡니다. <code>Column</code>은 자식들을 위에서 아래로 쌓습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">68</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">3</span>),
+<span class="ln">69</span>              <span class="tt">SizedBox</span>(
+<span class="ln">70</span>                width: <span class="tn">140</span>,
+<span class="ln">71</span>                height: <span class="tn">155</span>,
+<span class="ln">72</span>                child: <span class="tt">SvgPicture</span>.asset(<span class="ts">&#x27;assets/images/splash_logo.svg&#x27;</span>),
+<span class="ln">73</span>              ),
+<span class="ln">74</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">2</span>),</code></pre><div class="note"><span class="rng">68–74줄</span><p><code>Spacer(flex: 3)</code>와 <code>Spacer(flex: 2)</code>는 남는 세로 공간을 3:2로 나눠 차지하는 빈칸입니다. 그 사이에 로고(140×155)가 들어갑니다. 화면 크기가 달라도 비율이 유지됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">75</span>              <span class="tt">Padding</span>(
+<span class="ln">76</span>                padding: <span class="tk">const</span> <span class="tt">EdgeInsets</span>.symmetric(horizontal: <span class="tn">32</span>),
+<span class="ln">77</span>                child: <span class="tt">Column</span>(
+<span class="ln">78</span>                  children: [</code></pre><div class="note"><span class="rng">75–78줄</span><p>좌우 32 여백 안에 입력 칸들을 또 세로로 쌓습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">79</span>                    <span class="tt">TextFormField</span>(
+<span class="ln">80</span>                      controller: _emailController,
+<span class="ln">81</span>                      keyboardType: <span class="tt">TextInputType</span>.emailAddress,
+<span class="ln">82</span>                      decoration: <span class="tk">const</span> <span class="tt">InputDecoration</span>(
+<span class="ln">83</span>                        labelText: <span class="ts">&#x27;이메일&#x27;</span>,
+<span class="ln">84</span>                        labelStyle: <span class="tt">TextStyle</span>(color: <span class="tt">Color</span>(<span class="tn">0xFFBDBDBD</span>)),
+<span class="ln">85</span>                        border: <span class="tt">OutlineInputBorder</span>(
+<span class="ln">86</span>                          borderRadius: <span class="tt">BorderRadius</span>.all(<span class="tt">Radius</span>.circular(<span class="tn">19</span>)),
+<span class="ln">87</span>                        ),
+<span class="ln">88</span>                      ),
+<span class="ln">89</span>                      validator: (value) =&gt;
+<span class="ln">90</span>                          (value == <span class="tk">null</span> || value.isEmpty) ? <span class="ts">&#x27;이메일을 입력해주세요&#x27;</span> : <span class="tk">null</span>,
+<span class="ln">91</span>                    ),</code></pre><div class="note"><span class="rng">79–91줄</span><p>이메일 입력 칸. 26줄의 컨트롤러를 연결하고, 키보드를 이메일용으로, 테두리를 둥글게(반지름 19). <code>validator</code>는 38줄에서 검사할 때 불리는 함수로, 비어 있으면 오류 문구를, 괜찮으면 <code>null</code>을 돌려줍니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">92</span>                    <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">16</span>),</code></pre><div class="note"><span class="rng">92줄</span><p>칸 사이 16 높이의 빈 상자. Flutter에서 간격은 이렇게 빈 <code>SizedBox</code>로 만듭니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">93</span>                    <span class="tt">TextFormField</span>(
+<span class="ln">94</span>                      controller: _passwordController,
+<span class="ln">95</span>                      obscureText: <span class="tk">true</span>,
+<span class="ln">96</span>                      decoration: <span class="tk">const</span> <span class="tt">InputDecoration</span>(
+<span class="ln">97</span>                        labelText: <span class="ts">&#x27;비밀번호&#x27;</span>,
+<span class="ln">98</span>                        labelStyle: <span class="tt">TextStyle</span>(color: <span class="tt">Color</span>(<span class="tn">0xFFBDBDBD</span>)),
+<span class="ln">99</span>                        border: <span class="tt">OutlineInputBorder</span>(
+<span class="ln">100</span>                          borderRadius: <span class="tt">BorderRadius</span>.all(<span class="tt">Radius</span>.circular(<span class="tn">19</span>)),
+<span class="ln">101</span>                        ),
+<span class="ln">102</span>                      ),
+<span class="ln">103</span>                      validator: (value) =&gt;
+<span class="ln">104</span>                          (value == <span class="tk">null</span> || value.isEmpty) ? <span class="ts">&#x27;비밀번호를 입력해주세요&#x27;</span> : <span class="tk">null</span>,
+<span class="ln">105</span>                    ),</code></pre><div class="note"><span class="rng">93–105줄</span><p>비밀번호 칸. <code>obscureText: true</code>로 글자를 ●로 가립니다. 나머지는 이메일 칸과 같습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">106</span>                    <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">24</span>),
+<span class="ln">107</span>                    <span class="tt">SizedBox</span>(
+<span class="ln">108</span>                      width: double.infinity,
+<span class="ln">109</span>                      child: <span class="tt">ElevatedButton</span>(
+<span class="ln">110</span>                        onPressed: _submitting ? <span class="tk">null</span> : _submit,</code></pre><div class="note"><span class="rng">106–110줄</span><p><b>로그인 버튼.</b> <code>width: double.infinity</code>로 가로를 꽉 채웁니다. <code>onPressed: _submitting ? null : _submit</code>은 "요청 중이면 null(누를 수 없음), 아니면 누를 때 37줄 <code>_submit</code> 실행"입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">111</span>                        style: <span class="tt">ElevatedButton</span>.styleFrom(
+<span class="ln">112</span>                          backgroundColor: _brandBlue,
+<span class="ln">113</span>                          foregroundColor: <span class="tt">Colors</span>.white,
+<span class="ln">114</span>                          shape: <span class="tt">RoundedRectangleBorder</span>(
+<span class="ln">115</span>                            borderRadius: <span class="tt">BorderRadius</span>.circular(<span class="tn">19</span>),
+<span class="ln">116</span>                          ),
+<span class="ln">117</span>                        ),</code></pre><div class="note"><span class="rng">111–117줄</span><p>버튼 색(하늘색 배경, 흰 글자)과 둥근 모서리.</p></div></div><div class="row"><pre class="code"><code><span class="ln">118</span>                        child: _submitting
+<span class="ln">119</span>                            ? <span class="tk">const</span> <span class="tt">SizedBox</span>(
+<span class="ln">120</span>                                width: <span class="tn">20</span>,
+<span class="ln">121</span>                                height: <span class="tn">20</span>,
+<span class="ln">122</span>                                child: <span class="tt">CircularProgressIndicator</span>(
+<span class="ln">123</span>                                  strokeWidth: <span class="tn">2</span>,
+<span class="ln">124</span>                                  color: <span class="tt">Colors</span>.white,
+<span class="ln">125</span>                                ),
+<span class="ln">126</span>                              )
+<span class="ln">127</span>                            : <span class="tk">const</span> <span class="tt">Text</span>(<span class="ts">&#x27;로그인&#x27;</span>),
+<span class="ln">128</span>                      ),
+<span class="ln">129</span>                    ),</code></pre><div class="note"><span class="rng">118–129줄</span><p>버튼 안에 보일 것. 요청 중이면 작은 로딩 원, 아니면 "로그인" 글자.</p></div></div><div class="row"><pre class="code"><code><span class="ln">130</span>                  ],
+<span class="ln">131</span>                ),
+<span class="ln">132</span>              ),
+<span class="ln">133</span>              <span class="tk">const</span> <span class="tt">SizedBox</span>(height: <span class="tn">16</span>),</code></pre><div class="note"><span class="rng">130–133줄</span><p>괄호 닫기와 16 간격.</p></div></div><div class="row"><pre class="code"><code><span class="ln">134</span>              <span class="tt">Row</span>(
+<span class="ln">135</span>                mainAxisAlignment: <span class="tt">MainAxisAlignment</span>.center,
+<span class="ln">136</span>                children: [
+<span class="ln">137</span>                  <span class="tt">TextButton</span>(
+<span class="ln">138</span>                    onPressed: () {},
+<span class="ln">139</span>                    child: <span class="tk">const</span> <span class="tt">Text</span>(
+<span class="ln">140</span>                      <span class="ts">&#x27;회원가입&#x27;</span>,
+<span class="ln">141</span>                      style: <span class="tt">TextStyle</span>(
+<span class="ln">142</span>                        color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
+<span class="ln">143</span>                        decoration: <span class="tt">TextDecoration</span>.underline,
+<span class="ln">144</span>                      ),
+<span class="ln">145</span>                    ),
+<span class="ln">146</span>                  ),
+<span class="ln">147</span>                  <span class="tt">TextButton</span>(
+<span class="ln">148</span>                    onPressed: () {},
+<span class="ln">149</span>                    child: <span class="tk">const</span> <span class="tt">Text</span>(
+<span class="ln">150</span>                      <span class="ts">&#x27;아이디/비밀번호 찾기&#x27;</span>,
+<span class="ln">151</span>                      style: <span class="tt">TextStyle</span>(
+<span class="ln">152</span>                        color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
+<span class="ln">153</span>                        decoration: <span class="tt">TextDecoration</span>.underline,
+<span class="ln">154</span>                      ),
+<span class="ln">155</span>                    ),
+<span class="ln">156</span>                  ),
+<span class="ln">157</span>                ],
+<span class="ln">158</span>              ),</code></pre><div class="note"><span class="rng">134–158줄</span><p><code>Row</code>(가로로 나란히) 안에 "회원가입", "아이디/비밀번호 찾기" 글자 버튼. <code>onPressed: () {}</code>는 아무것도 안 하는 빈 함수라 지금은 눌러도 반응이 없습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">159</span>              <span class="tc">// 원래 Figma 목업이던 소셜 로그인 화면은 지워지지 않았다 —</span>
+<span class="ln">160</span>              <span class="tc">// 이 링크로 그 디자인을 그대로 볼 수 있게 남겨뒀다(자세한</span>
+<span class="ln">161</span>              <span class="tc">// 이유는 이 파일 위쪽 문서 주석 참고). 실제 로그인 수단은</span>
+<span class="ln">162</span>              <span class="tc">// 여전히 이메일뿐이다.</span>
+<span class="ln">163</span>              <span class="tt">TextButton</span>(
+<span class="ln">164</span>                onPressed: () =&gt; context.push(<span class="ts">&#x27;/login/social&#x27;</span>),
+<span class="ln">165</span>                child: <span class="tk">const</span> <span class="tt">Text</span>(
+<span class="ln">166</span>                  <span class="ts">&#x27;다른 방법으로 로그인&#x27;</span>,
+<span class="ln">167</span>                  style: <span class="tt">TextStyle</span>(
+<span class="ln">168</span>                    color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
+<span class="ln">169</span>                    decoration: <span class="tt">TextDecoration</span>.underline,
+<span class="ln">170</span>                  ),
+<span class="ln">171</span>                ),
+<span class="ln">172</span>              ),</code></pre><div class="note"><span class="rng">159–172줄</span><p>"다른 방법으로 로그인"을 누르면 <code>context.push('/login/social')</code>로 소셜 로그인 디자인 화면을 위에 쌓습니다. <code>go</code>는 화면을 갈아치우고, <code>push</code>는 위에 쌓아서 뒤로가기가 가능합니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">173</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">1</span>),
+<span class="ln">174</span>            ],
+<span class="ln">175</span>          ),
+<span class="ln">176</span>        ),
+<span class="ln">177</span>      ),
+<span class="ln">178</span>    );
+<span class="ln">179</span>  }
+<span class="ln">180</span>}</code></pre><div class="note"><span class="rng">173–180줄</span><p>아래쪽 빈칸(flex 1)과 괄호 닫기들.</p></div></div></div>
   <footer class="stop-foot">
-    <p class="next-hint"><b>다음으로</b> 49줄 <code>authRepositoryProvider</code>를 Ctrl+클릭합니다.</p>
+    <p class="next-hint"><b>다음으로</b> 45줄 <code>authRepositoryProvider</code>를 Ctrl+클릭합니다.</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="5">← 이전 정류장</button><button type="button" class="btn" data-go="7">다음 정류장: auth_providers.dart →</button></div>
   </footer>
 </article>
@@ -643,7 +636,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
     <span class="eyebrow">정류장 7 / 14</span>
     <h2>부품 조립 공장</h2>
     <p class="path"><code>lib/features/auth/data/auth_providers.dart</code> · 40줄</p>
-    <p class="arrive"><b>어떻게 왔나</b> <code>login_screen.dart</code> 49줄 <code>ref.read(authRepositoryProvider)</code>에서 왔습니다.</p>
+    <p class="arrive"><b>어떻게 왔나</b> <code>login_screen.dart</code> 45줄 <code>ref.read(authRepositoryProvider)</code>에서 왔습니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tk">import</span> <span class="ts">&#x27;package:flutter_riverpod/flutter_riverpod.dart&#x27;</span>;
 <span class="ln">2</span> 
@@ -670,14 +663,14 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">28</span> </code></pre><div class="note"><span class="rng">25–28줄</span><p><b>login_screen이 꺼낸 바로 그것.</b> <code>ApiAuthRepository</code>를 만들고, 서버 통신 객체와 세션 저장소를 넘겨줍니다. 타입은 <code>AuthRepository</code>(약속)로 공개해서, 화면은 안쪽이 무엇인지 몰라도 됩니다.</p><aside class="concept"><span class="concept-k">새 개념</span><b>abstract class / implements</b><p><code>abstract class</code>는 "이런 함수들이 있어야 한다"는 목록(약속)만 있고 내용은 없는 클래스입니다. <code>class B implements A</code>는 "B가 A의 약속을 전부 실제로 구현한다"는 뜻입니다. 화면은 약속(A)만 알고, 실제로 Hive를 쓸지 서버를 쓸지는 B가 정합니다. 그래서 나중에 B만 바꿔 끼우면 화면 코드는 그대로 둘 수 있습니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">29</span><span class="tk">final</span> userRepositoryProvider = <span class="tt">Provider</span>&lt;<span class="tt">UserRepository</span>&gt;((ref) {
 <span class="ln">30</span>  <span class="tk">return</span> <span class="tt">ApiUserRepository</span>(ref.watch(apiClientProvider));
 <span class="ln">31</span>});
-<span class="ln">32</span> </code></pre><div class="note"><span class="rng">29–32줄</span><p>55줄 <code>userRepositoryProvider</code>도 여기서 만들어집니다. 내 정보 조회·수정 담당입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">33</span><span class="tc">/// 로그인한 계정 정보(`GET /users/me`)를 캐싱해서 여러 화면(내 정보 헤더,</span>
+<span class="ln">32</span> </code></pre><div class="note"><span class="rng">29–32줄</span><p><code>userRepositoryProvider</code>도 여기서 만들어집니다. 내 정보 조회·수정 담당입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">33</span><span class="tc">/// 로그인한 계정 정보(`GET /users/me`)를 캐싱해서 여러 화면(내 정보 헤더,</span>
 <span class="ln">34</span><span class="tc">/// 사용자 설정, 프로필 수정)이 각자 다시 불러오지 않고 공유하게 한다.</span>
 <span class="ln">35</span><span class="tc">/// 이름을 바꾸는 화면(`profile_edit_screen.dart`)은 저장 성공 후</span>
 <span class="ln">36</span><span class="tc">/// `ref.invalidate(currentUserProvider)`로 이 캐시를 비워서 다음에 보는</span>
 <span class="ln">37</span><span class="tc">/// 화면들이 최신 값을 다시 받아오게 만든다.</span>
 <span class="ln">38</span><span class="tk">final</span> currentUserProvider = <span class="tt">FutureProvider</span>&lt;<span class="tt">AuthUser</span>&gt;((ref) {
 <span class="ln">39</span>  <span class="tk">return</span> ref.watch(userRepositoryProvider).getMe();
-<span class="ln">40</span>});</code></pre><div class="note"><span class="rng">33–40줄</span><p><code>FutureProvider</code>는 "비동기로 한 번 불러와 기억해 두는" provider입니다. 내 정보 탭 같은 화면이 <code>ref.watch(currentUserProvider)</code>로 씁니다. 로그인 화면은 이것 대신 55줄에서 직접 <code>getMe()</code>를 부릅니다.</p></div></div></div>
+<span class="ln">40</span>});</code></pre><div class="note"><span class="rng">33–40줄</span><p><code>FutureProvider</code>는 "비동기로 한 번 불러와 기억해 두는" provider입니다. 내 정보 탭 같은 화면이 <code>ref.watch(currentUserProvider)</code>로 씁니다. 로그인 화면은 이것을 쓰지 않습니다. <code>login()</code>이 돌려준 <code>user</code>로 충분하기 때문입니다.</p></div></div></div>
   <footer class="stop-foot">
     <p class="next-hint"><b>다음으로</b> 조립 순서대로 아래쪽 부품부터 봅니다. 10줄 <code>LocalStorageService</code>를 Ctrl+클릭합니다.</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="6">← 이전 정류장</button><button type="button" class="btn" data-go="8">다음 정류장: local_storage_service.dart →</button></div>
@@ -775,7 +768,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">36</span>  <span class="tk">final</span> <span class="tt">Future</span>&lt;<span class="tt">String</span>?&gt; <span class="tt">Function</span>()? getAccessUuid;
 <span class="ln">37</span>}</code></pre><div class="note"><span class="rng">35–37줄</span><p>필드 두 개. <code>dio</code>는 실제 요청을 보내는 객체, <code>getAccessUuid</code>는 "<code>Future&lt;String?&gt;</code>를 돌려주는, 인자 없는 함수" 타입이고 끝의 <code>?</code>로 없어도 됩니다.</p></div></div></div>
   <footer class="stop-foot">
-    <p class="next-hint"><b>다음으로</b> 이제 <code>auth_providers.dart</code> 26줄 <code>ApiAuthRepository</code>, 즉 login_screen 49줄이 부른 <code>.login()</code>의 본체로 갑니다.</p>
+    <p class="next-hint"><b>다음으로</b> 이제 <code>auth_providers.dart</code> 26줄 <code>ApiAuthRepository</code>, 즉 login_screen 45줄이 부른 <code>.login()</code>의 본체로 갑니다.</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="9">← 이전 정류장</button><button type="button" class="btn" data-go="11">다음 정류장: auth_repository.dart →</button></div>
   </footer>
 </article>
@@ -784,7 +777,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
     <span class="eyebrow">정류장 11 / 14</span>
     <h2>login()의 진짜 내용</h2>
     <p class="path"><code>lib/features/auth/data/auth_repository.dart</code> · 72줄</p>
-    <p class="arrive"><b>어떻게 왔나</b> <code>login_screen.dart</code> 49줄 <code>.login(...)</code> → <code>auth_providers.dart</code> 26줄 <code>ApiAuthRepository</code>에서 왔습니다.</p>
+    <p class="arrive"><b>어떻게 왔나</b> <code>login_screen.dart</code> 45줄 <code>.login(...)</code> → <code>auth_providers.dart</code> 26줄 <code>ApiAuthRepository</code>에서 왔습니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tk">import</span> <span class="ts">&#x27;package:dio/dio.dart&#x27;</span>;
 <span class="ln">2</span> 
@@ -826,10 +819,10 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">48</span>      <span class="tk">final</span> response = <span class="tk">await</span> _apiClient.dio.post(
 <span class="ln">49</span>        path,
 <span class="ln">50</span>        data: {<span class="ts">&#x27;email&#x27;</span>: email, <span class="ts">&#x27;password&#x27;</span>: password},
-<span class="ln">51</span>      );</code></pre><div class="note"><span class="rng">47–51줄</span><p><b>서버로 요청 발사.</b> <code>POST /auth/login</code>에 본문 <code>{"email": ..., "password": ...}</code>를 담아 보냅니다. 이 순간 api_client의 인터셉터(검문소)를 지나갑니다. 응답이 올 때까지 기다립니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">52</span>      <span class="tk">final</span> data = response.data[<span class="ts">&#x27;data&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;;</code></pre><div class="note"><span class="rng">52줄</span><p>서버 응답 모양은 <code>{"data": {...}, "error": null}</code>입니다. 그중 <code>data</code> 부분을 꺼냅니다. <code>as Map&lt;String, dynamic&gt;</code>은 "이건 사전이라고 보고 다룬다"는 형 변환입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">53</span>      <span class="tk">await</span> _session.saveAccessUuid(data[<span class="ts">&#x27;accessUuid&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>);</code></pre><div class="note"><span class="rng">53줄</span><p><b>서버가 준 토큰(<code>accessUuid</code>)을 기기에 저장합니다.</b> 앞에서 본 <code>saveAccessUuid</code>가 여기서 불립니다. 이후 모든 요청에는 인터셉터가 이 값을 자동으로 붙입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">54</span>      <span class="tk">return</span> <span class="tt">AuthUser</span>.fromJson(data[<span class="ts">&#x27;user&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;);</code></pre><div class="note"><span class="rng">54줄</span><p>응답의 <code>user</code> 부분을 <code>AuthUser</code> 객체로 바꿔 돌려줍니다. 이 값이 login_screen 49줄의 <code>await</code> 결과입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">55</span>    } <span class="tk">on</span> <span class="tt">DioException</span> <span class="tk">catch</span> (e) {
+<span class="ln">51</span>      );</code></pre><div class="note"><span class="rng">47–51줄</span><p><b>서버로 요청 발사.</b> <code>POST /auth/login</code>에 본문 <code>{"email": ..., "password": ...}</code>를 담아 보냅니다. 이 순간 api_client의 인터셉터(검문소)를 지나갑니다. 응답이 올 때까지 기다립니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">52</span>      <span class="tk">final</span> data = response.data[<span class="ts">&#x27;data&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;;</code></pre><div class="note"><span class="rng">52줄</span><p>서버 응답 모양은 <code>{"data": {...}, "error": null}</code>입니다. 그중 <code>data</code> 부분을 꺼냅니다. <code>as Map&lt;String, dynamic&gt;</code>은 "이건 사전이라고 보고 다룬다"는 형 변환입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">53</span>      <span class="tk">await</span> _session.saveAccessUuid(data[<span class="ts">&#x27;accessUuid&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>);</code></pre><div class="note"><span class="rng">53줄</span><p><b>서버가 준 토큰(<code>accessUuid</code>)을 기기에 저장합니다.</b> 앞에서 본 <code>saveAccessUuid</code>가 여기서 불립니다. 이후 모든 요청에는 인터셉터가 이 값을 자동으로 붙입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">54</span>      <span class="tk">return</span> <span class="tt">AuthUser</span>.fromJson(data[<span class="ts">&#x27;user&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;);</code></pre><div class="note"><span class="rng">54줄</span><p>응답의 <code>user</code> 부분을 <code>AuthUser</code> 객체로 바꿔 돌려줍니다. 이 값이 login_screen 45줄의 <code>await</code> 결과(<code>user</code>)입니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">55</span>    } <span class="tk">on</span> <span class="tt">DioException</span> <span class="tk">catch</span> (e) {
 <span class="ln">56</span>      throwAsApiException(e);
 <span class="ln">57</span>    }
-<span class="ln">58</span>  }</code></pre><div class="note"><span class="rng">55–58줄</span><p>요청이 실패하면(서버가 꺼짐, 비밀번호 틀림 등) Dio가 <code>DioException</code>을 던지고, 여기서 잡아 우리 앱의 <code>ApiException</code>으로 바꿔 다시 던집니다. 그래서 login_screen 58줄이 <code>ApiException</code>만 잡으면 됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">60</span>  <span class="tk">@override</span>
+<span class="ln">58</span>  }</code></pre><div class="note"><span class="rng">55–58줄</span><p>요청이 실패하면(서버가 꺼짐, 비밀번호 틀림 등) Dio가 <code>DioException</code>을 던지고, 여기서 잡아 우리 앱의 <code>ApiException</code>으로 바꿔 다시 던집니다. 그래서 login_screen 51줄이 <code>ApiException</code>만 잡으면 됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">60</span>  <span class="tk">@override</span>
 <span class="ln">61</span>  <span class="tt">Future</span>&lt;<span class="tk">void</span>&gt; logout() <span class="tk">async</span> {
 <span class="ln">62</span>    <span class="tk">try</span> {
 <span class="ln">63</span>      <span class="tk">await</span> _apiClient.dio.post(<span class="ts">&#x27;/auth/logout&#x27;</span>);
@@ -892,7 +885,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
   <header class="stop-head">
     <span class="eyebrow">정류장 13 / 14</span>
     <h2>서버 JSON을 앱 객체로</h2>
-    <p class="path"><code>lib/features/auth/domain/auth_user.dart</code> · 34줄</p>
+    <p class="path"><code>lib/features/auth/domain/auth_user.dart</code> · 33줄</p>
     <p class="arrive"><b>어떻게 왔나</b> <code>auth_repository.dart</code> 54줄 <code>AuthUser.fromJson(...)</code>에서 왔습니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tc">/// 로그인한 보호자 계정 정보. `docs/API.md` 5장(`GET/PATCH /users/me`)과</span>
@@ -902,27 +895,22 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">6</span>    <span class="tk">required</span> <span class="tk">this</span>.name,
 <span class="ln">7</span>    <span class="tk">required</span> <span class="tk">this</span>.email,
 <span class="ln">8</span>    <span class="tk">this</span>.createdAt,
-<span class="ln">9</span>  });
-<span class="ln">10</span> </code></pre><div class="note"><span class="rng">3–10줄</span><p>사용자 한 명을 담는 클래스와 생성자. <code>createdAt</code>만 <code>required</code>가 없어 생략할 수 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">11</span>  <span class="tk">final</span> int userId;
-<span class="ln">12</span> </code></pre><div class="note"><span class="rng">11–12줄</span><p>사용자 번호.</p></div></div><div class="row"><pre class="code"><code><span class="ln">13</span>  <span class="tc">/// `null`이면 아직 온보딩 1차(보호자 성명 입력)를 마치지 않은 계정이다</span>
-<span class="ln">14</span>  <span class="tc">/// — 로그인 응답에는 없지만 `GET /users/me`에는 있는 필드라, 로그인</span>
-<span class="ln">15</span>  <span class="tc">/// 직후 온보딩 필요 여부를 판단하려면 `GET /users/me`를 한 번 더</span>
-<span class="ln">16</span>  <span class="tc">/// 불러야 한다(`docs/API.md` 5장).</span>
-<span class="ln">17</span>  <span class="tk">final</span> <span class="tt">String</span>? name;
-<span class="ln">18</span> </code></pre><div class="note"><span class="rng">13–18줄</span><p><b>이름. <code>String?</code>이라 null일 수 있습니다.</b> null이면 아직 온보딩(보호자 이름 입력)을 안 한 계정입니다. login_screen 57줄의 분기가 바로 이 값을 봅니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">19</span>  <span class="tk">final</span> <span class="tt">String</span> email;
-<span class="ln">20</span> 
-<span class="ln">21</span>  <span class="tc">/// 로그인/회원가입 응답에는 없고 `GET /users/me`에만 있다.</span>
-<span class="ln">22</span>  <span class="tk">final</span> <span class="tt">DateTime</span>? createdAt;
-<span class="ln">23</span> </code></pre><div class="note"><span class="rng">19–23줄</span><p>이메일, 가입 시각(없을 수 있음).</p></div></div><div class="row"><pre class="code"><code><span class="ln">24</span>  <span class="tk">factory</span> <span class="tt">AuthUser</span>.fromJson(<span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt; json) {</code></pre><div class="note"><span class="rng">24줄</span><p>JSON 사전을 받아 AuthUser를 만드는 생성자.</p><aside class="concept"><span class="concept-k">새 개념</span><b>factory 생성자 / fromJson</b><p><code>factory</code>는 "객체를 만드는 방법을 직접 코드로 정하는 생성자"입니다. <code>AuthUser.fromJson(json)</code>은 서버에서 온 JSON 사전을 받아 필드를 하나씩 꺼내 AuthUser 객체를 만들어 돌려줍니다. 앱 안에서는 사전 대신 이 객체를 쓰니 오타를 컴파일러가 잡아줍니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">25</span>    <span class="tk">return</span> <span class="tt">AuthUser</span>(
-<span class="ln">26</span>      userId: json[<span class="ts">&#x27;userId&#x27;</span>] <span class="tk">as</span> int,
-<span class="ln">27</span>      name: json[<span class="ts">&#x27;name&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>?,
-<span class="ln">28</span>      email: json[<span class="ts">&#x27;email&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>,</code></pre><div class="note"><span class="rng">25–28줄</span><p>사전에서 키로 값을 하나씩 꺼내 필드에 넣습니다. 서버의 <code>"userId": 1</code>이 <code>userId: 1</code>이 됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">29</span>      createdAt: json[<span class="ts">&#x27;createdAt&#x27;</span>] == <span class="tk">null</span>
-<span class="ln">30</span>          ? <span class="tk">null</span>
-<span class="ln">31</span>          : <span class="tt">DateTime</span>.parse(json[<span class="ts">&#x27;createdAt&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>),</code></pre><div class="note"><span class="rng">29–31줄</span><p>가입 시각은 없으면 null, 있으면 문자열(<code>"2026-09-01T08:30:00Z"</code>)을 <code>DateTime</code>으로 바꿉니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">32</span>    );
-<span class="ln">33</span>  }
-<span class="ln">34</span>}</code></pre><div class="note"><span class="rng">32–34줄</span><p>괄호 닫기.</p></div></div></div>
+<span class="ln">9</span>  });</code></pre><div class="note"><span class="rng">3–9줄</span><p>사용자 한 명을 담는 클래스와 생성자. <code>createdAt</code>만 <code>required</code>가 없어 생략할 수 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">11</span>  <span class="tk">final</span> int userId;</code></pre><div class="note"><span class="rng">11줄</span><p>사용자 번호.</p></div></div><div class="row"><pre class="code"><code><span class="ln">13</span>  <span class="tc">/// `null`이면 아직 온보딩 1차(보호자 성명 입력)를 마치지 않은 계정이다.</span>
+<span class="ln">14</span>  <span class="tc">/// 로그인/회원가입 응답의 `user`에도 들어 있으므로(`docs/API.md` 4장),</span>
+<span class="ln">15</span>  <span class="tc">/// 로그인 직후 온보딩 필요 여부는 `GET /users/me` 없이 이 값으로 판단한다.</span>
+<span class="ln">16</span>  <span class="tk">final</span> <span class="tt">String</span>? name;</code></pre><div class="note"><span class="rng">13–16줄</span><p><b>이름. <code>String?</code>이라 null일 수 있습니다.</b> null이면 아직 온보딩(보호자 이름 입력)을 안 한 계정입니다. 로그인 응답의 <code>user</code>에도 들어 있어서, login_screen 50줄의 분기가 바로 이 값을 봅니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">18</span>  <span class="tk">final</span> <span class="tt">String</span> email;
+<span class="ln">19</span> 
+<span class="ln">20</span>  <span class="tc">/// 로그인/회원가입 응답의 `user`에는 없고 `GET /users/me`에만 있다.</span>
+<span class="ln">21</span>  <span class="tk">final</span> <span class="tt">DateTime</span>? createdAt;</code></pre><div class="note"><span class="rng">18–21줄</span><p>이메일, 가입 시각(없을 수 있음). 가입 시각은 로그인 응답에는 없고 <code>GET /users/me</code>에만 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">23</span>  <span class="tk">factory</span> <span class="tt">AuthUser</span>.fromJson(<span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt; json) {</code></pre><div class="note"><span class="rng">23줄</span><p>JSON 사전을 받아 AuthUser를 만드는 생성자.</p><aside class="concept"><span class="concept-k">새 개념</span><b>factory 생성자 / fromJson</b><p><code>factory</code>는 "객체를 만드는 방법을 직접 코드로 정하는 생성자"입니다. <code>AuthUser.fromJson(json)</code>은 서버에서 온 JSON 사전을 받아 필드를 하나씩 꺼내 AuthUser 객체를 만들어 돌려줍니다. 앱 안에서는 사전 대신 이 객체를 쓰니 오타를 컴파일러가 잡아줍니다.</p></aside></div></div><div class="row"><pre class="code"><code><span class="ln">24</span>    <span class="tk">return</span> <span class="tt">AuthUser</span>(
+<span class="ln">25</span>      userId: json[<span class="ts">&#x27;userId&#x27;</span>] <span class="tk">as</span> int,
+<span class="ln">26</span>      name: json[<span class="ts">&#x27;name&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>?,
+<span class="ln">27</span>      email: json[<span class="ts">&#x27;email&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>,</code></pre><div class="note"><span class="rng">24–27줄</span><p>사전에서 키로 값을 하나씩 꺼내 필드에 넣습니다. 서버의 <code>"userId": 1</code>이 <code>userId: 1</code>이 됩니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">28</span>      createdAt: json[<span class="ts">&#x27;createdAt&#x27;</span>] == <span class="tk">null</span>
+<span class="ln">29</span>          ? <span class="tk">null</span>
+<span class="ln">30</span>          : <span class="tt">DateTime</span>.parse(json[<span class="ts">&#x27;createdAt&#x27;</span>] <span class="tk">as</span> <span class="tt">String</span>),</code></pre><div class="note"><span class="rng">28–30줄</span><p>가입 시각은 없으면 null, 있으면 문자열(<code>"2026-09-01T08:30:00Z"</code>)을 <code>DateTime</code>으로 바꿉니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">31</span>    );
+<span class="ln">32</span>  }
+<span class="ln">33</span>}</code></pre><div class="note"><span class="rng">31–33줄</span><p>괄호 닫기.</p></div></div></div>
   <footer class="stop-foot">
-    <p class="next-hint"><b>다음으로</b> login_screen 55줄의 <code>getMe()</code>가 남았습니다. <code>user_repository.dart</code>로 갑니다.</p>
+    <p class="next-hint"><b>다음으로</b> 로그인 흐름은 여기서 끝입니다. 이 <code>AuthUser</code>를 돌려주는 또 하나의 요청, <code>user_repository.dart</code>의 <code>getMe()</code>를 봅니다(프로필 등 다른 화면이 씁니다).</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="12">← 이전 정류장</button><button type="button" class="btn" data-go="14">다음 정류장: user_repository.dart →</button></div>
   </footer>
 </article>
@@ -931,7 +919,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
     <span class="eyebrow">정류장 14 / 14</span>
     <h2>내 정보 받아오기, 그리고 분기</h2>
     <p class="path"><code>lib/features/auth/data/user_repository.dart</code> · 41줄</p>
-    <p class="arrive"><b>어떻게 왔나</b> <code>login_screen.dart</code> 55줄 <code>ref.read(userRepositoryProvider).getMe()</code>에서 왔습니다.</p>
+    <p class="arrive"><b>어떻게 왔나</b> <code>auth_user.dart</code>의 <code>AuthUser</code>를 돌려주는 또 다른 요청입니다. 로그인 화면은 더 이상 부르지 않고, 내 정보를 보여주는 화면들이 씁니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tk">import</span> <span class="ts">&#x27;package:dio/dio.dart&#x27;</span>;
 <span class="ln">2</span> 
@@ -954,7 +942,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">23</span>  <span class="tt">Future</span>&lt;<span class="tt">AuthUser</span>&gt; getMe() <span class="tk">async</span> {
 <span class="ln">24</span>    <span class="tk">try</span> {
 <span class="ln">25</span>      <span class="tk">final</span> response = <span class="tk">await</span> _apiClient.dio.<span class="tk">get</span>(<span class="ts">&#x27;/users/me&#x27;</span>);
-<span class="ln">26</span>      <span class="tk">return</span> <span class="tt">AuthUser</span>.fromJson(response.data[<span class="ts">&#x27;data&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;);</code></pre><div class="note"><span class="rng">22–26줄</span><p><b>GET /users/me</b> 요청을 보내고(인터셉터가 방금 저장한 토큰을 붙여줌), 응답의 <code>data</code>를 <code>AuthUser</code>로 바꿔 돌려줍니다. 여기에는 로그인 응답에 없던 <code>name</code>이 들어 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">27</span>    } <span class="tk">on</span> <span class="tt">DioException</span> <span class="tk">catch</span> (e) {
+<span class="ln">26</span>      <span class="tk">return</span> <span class="tt">AuthUser</span>.fromJson(response.data[<span class="ts">&#x27;data&#x27;</span>] <span class="tk">as</span> <span class="tt">Map</span>&lt;<span class="tt">String</span>, dynamic&gt;);</code></pre><div class="note"><span class="rng">22–26줄</span><p><b>GET /users/me</b> 요청을 보내고(인터셉터가 방금 저장한 토큰을 붙여줌), 응답의 <code>data</code>를 <code>AuthUser</code>로 바꿔 돌려줍니다. 로그인 응답에는 없던 <code>createdAt</code>까지 들어 있습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">27</span>    } <span class="tk">on</span> <span class="tt">DioException</span> <span class="tk">catch</span> (e) {
 <span class="ln">28</span>      throwAsApiException(e);
 <span class="ln">29</span>    }
 <span class="ln">30</span>  }</code></pre><div class="note"><span class="rng">27–30줄</span><p>실패하면 같은 방식으로 <code>ApiException</code>으로 바꿔 던집니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">32</span>  <span class="tk">@override</span>
@@ -968,7 +956,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">40</span>  }
 <span class="ln">41</span>}</code></pre><div class="note"><span class="rng">32–41줄</span><p>이름 수정(<code>PATCH /users/me</code>). 온보딩 1단계와 프로필 수정 화면에서 씁니다.</p></div></div></div>
   <footer class="stop-foot">
-    <p class="next-hint"><b>다음으로</b> 이제 <code>login_screen.dart</code> 57줄로 돌아가면 <code>me.name</code>을 보고 온보딩 또는 홈으로 갑니다. 1장 끝.</p>
+    <p class="next-hint"><b>다음으로</b> 1장 끝. 로그인 화면은 <code>login()</code>이 돌려준 <code>user.name</code>만 보고 온보딩 또는 홈으로 갑니다.</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="13">← 이전 정류장</button><span class="end">1장 끝. 다음 장은 홈 화면부터 이어집니다.</span></div>
   </footer>
 </article></main>

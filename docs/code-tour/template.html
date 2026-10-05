@@ -72,6 +72,8 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 
 /* stop */
 .stop { display: grid; gap: 22px; min-width: 0; }
+/* display:grid above would otherwise override the [hidden] attribute, leaving every stop visible */
+.stop[hidden] { display: none; }
 .stop-head { display: grid; gap: 6px; }
 .path code { color: var(--accent-ink); font-size: 13px; }
 .path { color: var(--muted); font-size: 13px; }

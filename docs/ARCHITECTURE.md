@@ -114,8 +114,8 @@ app.dart   MaterialApp.router(theme, appRouter)
 /splash    타이머 후 → context.go('/login')        (자동 로그인 없음: 항상 로그인 화면을 지난다)
    ▼
 /login     _submit():
-           1) POST /auth/login   → accessUuid를 Hive 'auth' 박스에 저장
-           2) GET  /users/me     → name 확인
+           POST /auth/login      → accessUuid를 Hive 'auth' 박스에 저장,
+                                   응답의 user.name 확인 (GET /users/me 불필요)
               ├─ name == null → /onboarding/guardian-info  (PATCH /users/me)
               │                   → /onboarding/child-info  (POST /children)
               │                   → /onboarding/device-connection (로컬, BLE 미연동)
@@ -154,7 +154,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 | POST | `/auth/login` | `AuthRepository.login` | 로그인 |
 | POST | `/auth/logout` | `AuthRepository.logout` | 내 정보, 사용자 설정 |
 | POST | `/auth/signup` | `AuthRepository.signup` | ✗ (회원가입 화면 없음) |
-| GET | `/users/me` | `UserRepository.getMe` | 로그인, 내 정보, 사용자 설정, 프로필 수정 |
+| GET | `/users/me` | `UserRepository.getMe` | 내 정보, 사용자 설정, 프로필 수정 |
 | PATCH | `/users/me` | `UserRepository.updateMe` | 온보딩 1, 프로필 수정 |
 | POST | `/children` | `ChildRepository.createChild` | 온보딩 2 |
 | GET | `/children` | `ChildRepository.getChildren` | ✗ |
