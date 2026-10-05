@@ -48,7 +48,7 @@ lib/
     ├── onboarding/    # 최초 로그인 3단계 설정
     ├── children/      # 자녀 등록                                ← 서버 연동
     ├── home/          # 홈 탭
-    ├── routine/       # 루틴 탭 (달력, 추가, 상세, 템플릿)       ← 루틴은 서버, 템플릿은 로컬(Hive)
+    ├── routine/       # 루틴 탭 (달력, 추가, 상세, 수정, 템플릿)  ← 서버(자녀별)
     ├── devices/       # 기기 탭, 연결된 기기                      ← 로컬(Hive)
     ├── profile/       # 내 정보 탭, 프로필 사진                   ← 로컬 + 서버
     ├── notifications/ # 홈 벨 뱃지 개수 (데이터 넣는 곳 아직 없음)
@@ -136,7 +136,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 |---|---|---|---|
 | `auth` | `access_uuid` | 로그인 세션 값 `{value: uuid}` | `LocalAuthSessionRepository` |
 | `routines` | (옛 데이터) | 루틴을 서버로 옮기기 전에 저장하던 박스. 지금은 쓰는 코드가 없고 탈퇴 때 지우려고 목록에만 남김 | 없음 |
-| `routine_templates` | 템플릿 id | `RoutineTemplate.toMap()` | `LocalRoutineTemplateRepository` |
+| `routine_templates` | (옛 데이터) | 템플릿을 서버로 옮기기 전에 저장하던 박스. 쓰는 코드는 없고 탈퇴 때 지우려고 목록에만 남김 | 없음 |
 | `devices` | 기기 id | `ConnectedDevice.toMap()` | `LocalDeviceRepository` |
 | `profile` | `avatar_path` | 프로필 사진 파일 경로 `{path: ...}` | `LocalAvatarRepository` |
 | `notifications` | — | `AppNotification` (현재 쓰는 곳 없음 → 항상 빈 목록) | `LocalNotificationRepository` |
@@ -157,11 +157,20 @@ app.dart   MaterialApp.router(theme, appRouter)
 | GET | `/users/me` | `UserRepository.getMe` | 내 정보, 사용자 설정, 프로필 수정 |
 | PATCH | `/users/me` | `UserRepository.updateMe` | 온보딩 1, 프로필 수정 |
 | POST | `/children` | `ChildRepository.createChild` | 온보딩 2 |
-| GET | `/children` | `ChildRepository.getChildren` | ✗ |
+| GET | `/children` | `ChildRepository.getChildren` | 루틴 탭 자녀 선택, 현재 자녀 |
+| DELETE | `/users/me` | `UserRepository.deleteUser` | 탈퇴하기 |
+| GET | `/children/:childId/calendar` | `RoutineRepository.getCalendar` | 달력, 오늘 할 일, 홈 카드, 기기 통계 |
+| POST | `/children/:childId/big-routines` | `RoutineRepository.createRoutine` | 루틴 추가 폼 |
+| PATCH / DELETE | `/big-routines/:id?scope=` | `RoutineRepository.updateRoutine` / `deleteRoutine` | 루틴 수정, 삭제 |
+| POST | `/big-routines/:id/small-routines?scope=` | `RoutineRepository.addSmallRoutine` | 할 일 편집(추가) |
+| PATCH / DELETE | `/small-routines/:id` | `renameSmallRoutine` / `deleteSmallRoutine` | 할 일 편집(이름·삭제, 그 날짜만) |
+| PUT | `/big-routines/:id/small-routines/order` | `RoutineRepository.reorderSmallRoutines` | 할 일 편집(순서) |
+| GET / POST | `/children/:childId/routine-templates` | `RoutineTemplateRepository` | 템플릿 사용, 템플릿에 저장하기 |
+| DELETE | `/routine-templates/:id` | `RoutineTemplateRepository.deleteTemplate` | 템플릿 삭제 |
 
 서버 에러는 전부 `ApiException(code, message)`로 바뀌어 나온다. 화면에서는 `on ApiException catch (e)` 후 `e.message`를 스낵바로 보여주면 된다(서버가 이미 한국어 문구를 준다).
 
-**루틴·기기·템플릿은 아직 서버와 연결되지 않은 로컬 전용 데이터다.**
+**기기와 프로필 사진 경로만 아직 서버와 연결되지 않은 로컬 전용 데이터다.** 루틴과 템플릿은 지금 보는 자녀(`currentChildProvider`)의 서버 데이터이고, 루틴은 `autoDispose`라 화면에 다시 들어올 때마다 서버에서 새로 받는다.
 
 ---
 
@@ -265,7 +274,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 | 데이터 연결 없는 화면 | 와이파이 설정, 기기 설정, 언어, 로그인 기록, 소셜 로그인, 기기 연결(온보딩 3)은 provider를 쓰지 않는 정적 화면 | 백엔드/BLE 스펙에 맞춰 순차 연결 |
 | 미사용 패키지 | `flutter_tts`, `flutter_local_notifications` | 쓸 계획 없으면 `pubspec.yaml`에서 제거 |
 | 미사용 API | `signup`, `getChildren` | 회원가입 화면·자녀 목록 화면 만들 때 사용 |
-| 삭제 기능 없음 | 루틴/기기/템플릿 저장소에 `delete`가 없다. 수정은 같은 id로 `put`해서 덮어쓴다. | 필요해지면 저장소에 `delete` 추가 후 Actions에서 invalidate |
+| 기기 삭제 없음 | 기기 저장소에 `delete`가 없다(루틴·템플릿은 서버 삭제가 있다). | 기기를 서버로 옮길 때 `DELETE /devices/:id`와 함께 추가 |
 | 테스트 없음 | `test/` 폴더가 없다. | 순수 함수가 많은 `new_routine.dart`의 `toJson`, `routine.dart`의 `fromCalendarJson`부터 단위 테스트 추가 추천 |
 
 ---

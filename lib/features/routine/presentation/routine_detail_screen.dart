@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
 import '../../../app/widgets/progress_ring.dart';
+import '../../../core/network/api_exception.dart';
+import '../data/routine_providers.dart';
+import '../domain/change_scope.dart';
 import '../domain/routine.dart';
+import 'widgets/scope_dialog.dart';
 
 /// Figma: 예소 / "3. 단일루틴 상세보기" (node-id 392:2096, "앱 초안 3" 프레임
 /// 안). "오늘 할 일" 목록에서 루틴 카드를 누르면 도착한다.
@@ -14,9 +19,12 @@ import '../domain/routine.dart';
 /// 읽기만 한다. 서버 모델에는 "누가 했는지"(참여자)가 없어서, 예전의 구성원별
 /// 아바타 목록은 없어졌다.
 ///
-/// 루틴은 목록 화면이 이미 받아 둔 것을 [routine]으로 넘겨받는다(라우터의
-/// `state.extra`). 주소로 바로 들어오는 등 넘겨받지 못하면 안내만 보여준다.
-class RoutineDetailScreen extends StatelessWidget {
+/// 오른쪽 위 톱니바퀴는 메뉴(수정 / 할 일 편집 / 삭제)를 연다.
+///
+/// 루틴은 목록 화면이 이미 받아 둔 것을 [routine]으로 처음 넘겨받는다(라우터의
+/// `state.extra`). 수정·할 일 편집을 마치고 돌아오면 달력 캐시에서 같은 루틴을
+/// 다시 찾아 최신 값을 보여준다. 처음부터 못 넘겨받으면 안내만 보여준다.
+class RoutineDetailScreen extends ConsumerWidget {
   const RoutineDetailScreen({super.key, required this.routine});
 
   final Routine? routine;
@@ -24,9 +32,78 @@ class RoutineDetailScreen extends StatelessWidget {
   static const _bg = Color(0xFFF4F4F4);
   static const _labelColor = Color(0xFF505050);
 
+  /// 톱니바퀴 메뉴. 고른 항목에 따라 화면을 열거나 삭제 흐름을 시작한다.
+  Future<void> _showMenu(BuildContext context, WidgetRef ref, Routine routine) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('루틴 수정 (이름·시간)'),
+              onTap: () => Navigator.of(context).pop('edit'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.checklist),
+              title: const Text('할 일 편집'),
+              onTap: () => Navigator.of(context).pop('steps'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Color(0xFFE71A1A)),
+              title: const Text('루틴 삭제', style: TextStyle(color: Color(0xFFE71A1A))),
+              onTap: () => Navigator.of(context).pop('delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+
+    switch (choice) {
+      case 'edit':
+        context.push('/routine/edit/${routine.id}', extra: routine);
+      case 'steps':
+        context.push('/routine/steps/${routine.id}', extra: routine);
+      case 'delete':
+        await _delete(context, ref, routine);
+    }
+  }
+
+  /// 삭제: 범위를 고르게 하고(서버 기본값은 그 날짜만 — 삭제는 되돌리기 어려워서)
+  /// 서버에서 지운 뒤 달력으로 돌아간다. 실패하면 오류를 알리고 화면에 남는다.
+  Future<void> _delete(BuildContext context, WidgetRef ref, Routine routine) async {
+    final scope = await showScopeDialog(
+      context,
+      title: "'${routine.title}'을(를) 지울까요?",
+      description: '같은 반복 전체를 고르면 오늘 이후 날짜의 같은 루틴도 함께 지워져요. '
+          '지난 날짜의 기록은 남아요.',
+      defaultScope: ChangeScope.single,
+    );
+    if (scope == null || !context.mounted) return;
+    try {
+      await ref.read(routineActionsProvider).deleteRoutine(routine, scope: scope);
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    }
+    if (context.mounted) context.go('/routine');
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final routine = this.routine;
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 수정·할 일 편집 뒤에는 달력 캐시가 새로 받아져서, 같은 날짜·같은 id의 루틴을
+    // 다시 찾아 최신 값을 보여준다. 못 찾으면(아직 로딩 등) 처음 받은 값을 쓴다.
+    final initial = this.routine;
+    final routine = initial == null
+        ? null
+        : ref
+                  .watch(routinesForDateProvider(initial.date))
+                  .where((r) => r.id == initial.id)
+                  .firstOrNull ??
+              initial;
 
     return Scaffold(
       backgroundColor: _bg,
@@ -42,7 +119,10 @@ class RoutineDetailScreen extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
-                      child: _DetailHeader(onBack: () => context.pop()),
+                      child: _DetailHeader(
+                        onBack: () => context.pop(),
+                        onMenu: () => _showMenu(context, ref, routine),
+                      ),
                     ),
                     const SizedBox(height: 32),
                     Padding(
@@ -75,12 +155,13 @@ class RoutineDetailScreen extends StatelessWidget {
   }
 }
 
-/// 뒤로가기 화살표 + "오늘 할 일" 제목. (예전에는 오른쪽에 이 루틴을 수정하는
-/// 톱니바퀴가 있었지만, 수정은 서버 규칙에 맞춰 다시 만들 때까지 뺐다.)
+/// 뒤로가기 화살표 + "오늘 할 일" 제목 + 오른쪽 끝 톱니바퀴(수정·할 일 편집·삭제
+/// 메뉴를 연다).
 class _DetailHeader extends StatelessWidget {
-  const _DetailHeader({required this.onBack});
+  const _DetailHeader({required this.onBack, required this.onMenu});
 
   final VoidCallback onBack;
+  final VoidCallback onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +196,15 @@ class _DetailHeader extends StatelessWidget {
             color: RoutineDetailScreen._labelColor,
             fontSize: 20,
             fontWeight: FontWeight.w600,
+          ),
+        ),
+        const Spacer(),
+        InkResponse(
+          onTap: onMenu,
+          radius: 18,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: SvgPicture.asset('assets/images/home_gear.svg', width: 20, height: 20),
           ),
         ),
       ],

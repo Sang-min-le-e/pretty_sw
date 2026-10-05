@@ -24,6 +24,8 @@ import '../features/routine/domain/routine.dart';
 import '../features/routine/domain/routine_template.dart';
 import '../features/routine/presentation/add_routine_screen.dart';
 import '../features/routine/presentation/routine_detail_screen.dart';
+import '../features/routine/presentation/routine_edit_screen.dart';
+import '../features/routine/presentation/routine_steps_screen.dart';
 import '../features/routine/presentation/routine_screen.dart';
 import '../features/routine/presentation/routine_template_list_screen.dart';
 import '../features/routine/presentation/routine_type_select_screen.dart';
@@ -118,6 +120,19 @@ final appRouter = GoRouter(
           path: 'detail/:id',
           builder: (context, state) =>
               RoutineDetailScreen(routine: state.extra as Routine?),
+        ),
+        // => '/routine/edit/:id', 상세 화면 톱니바퀴 메뉴의 "수정"(이름·시간).
+        // 고칠 루틴은 state.extra로 받는다.
+        GoRoute(
+          path: 'edit/:id',
+          builder: (context, state) =>
+              RoutineEditScreen(routine: state.extra as Routine?),
+        ),
+        // => '/routine/steps/:id', 같은 메뉴의 "할 일 편집"(추가·이름·삭제·순서).
+        GoRoute(
+          path: 'steps/:id',
+          builder: (context, state) =>
+              RoutineStepsScreen(routine: state.extra as Routine?),
         ),
         // => '/routine/add', "+" 버튼을 누르면 도착하는 "단일 루틴 /
         // 복합 루틴" 선택 화면(Figma "4. 루틴 추가 선택 화면").

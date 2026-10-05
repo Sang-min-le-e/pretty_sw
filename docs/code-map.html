@@ -251,10 +251,10 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <div class="cell last"><span class="chip c-server">/children</span></div>
 
       <div class="feat">routine</div>
-      <div class="cell">달력 · 오늘 할 일 · 상세 · 추가/수정 · 템플릿<span class="sub">홈 "현재 루틴", 기기 통계도 구독</span></div>
+      <div class="cell">달력 · 오늘 할 일 · 상세 · 추가 · 수정 · 할 일 편집 · 템플릿<span class="sub">홈 "현재 루틴", 기기 통계도 구독</span></div>
       <div class="cell"><code>routineCalendarProvider</code><code>routinesForDateProvider(날짜)</code><code>RoutineActions</code></div>
-      <div class="cell"><code>ApiRoutineRepository</code><code>LocalRoutineTemplateRepository</code></div>
-      <div class="cell last"><span class="chip c-server">/calendar · /big-routines</span><span class="chip c-local">routine_templates</span></div>
+      <div class="cell"><code>ApiRoutineRepository</code><code>ApiRoutineTemplateRepository</code></div>
+      <div class="cell last"><span class="chip c-server">/calendar · /big-routines · /routine-templates</span></div>
 
       <div class="feat">devices</div>
       <div class="cell">홈 캐러셀 · 기기 탭 · 연결된 기기 · 기기 추가</div>
@@ -286,7 +286,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 <section>
   <span class="eyebrow">상태 갱신 패턴</span>
   <h2>저장하면 왜 모든 화면이 알아서 바뀌나</h2>
-  <p>루틴을 저장하는 순간을 따라가 보면 이 앱의 상태 관리가 거의 다 보인다. <code>RoutineActions</code>가 저장한 다음 <code>routineListProvider</code>를 <b>invalidate</b>(캐시 폐기)하면, 그 provider를 watch하던 파생 provider와 화면들이 전부 다시 계산된다. 기기·템플릿·프로필 사진도 같은 모양이다.</p>
+  <p>루틴을 저장하는 순간을 따라가 보면 이 앱의 상태 관리가 거의 다 보인다. <code>RoutineActions</code>가 서버에 저장한 다음 <code>routineCalendarProvider</code>를 <b>invalidate</b>(캐시 폐기)하면, 그 provider를 watch하던 파생 provider와 화면들이 전부 다시 계산된다. 기기·템플릿·프로필 사진도 같은 모양이다.</p>
   <figure class="panel diagram">
     <div class="scroll">
     <svg viewBox="0 0 960 330" role="img" aria-label="루틴 저장 시 RoutineActions가 저장소에 쓰고 routineListProvider를 invalidate하면, 이를 구독하는 파생 provider와 화면이 다시 그려지는 흐름">
@@ -399,7 +399,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <li class="child"><span class="path">edit/:id</span><span class="name">수정 폼</span><span class="chip c-local">Hive</span></li>
         <li class="child"><span class="path">add</span><span class="name">단일/복합 선택</span><span class="chip c-static">정적</span></li>
         <li class="child"><span class="path">add/single · compound</span><span class="name">추가 폼, 반복 설정</span><span class="chip c-local">Hive</span></li>
-        <li class="child"><span class="path">add/templates</span><span class="name">템플릿 목록</span><span class="chip c-local">Hive</span></li>
+        <li class="child"><span class="path">add/templates</span><span class="name">템플릿 목록</span><span class="chip c-server">서버</span></li>
       </ul>
     </div>
     <div class="tab">
@@ -472,8 +472,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <tr><th>Hive 박스</th><th>키</th><th>내용</th></tr>
         <tr><td><code>auth</code></td><td><code>access_uuid</code></td><td>로그인 세션. 모든 API 요청 헤더에 자동 첨부</td></tr>
-        <tr><td><code>routines</code></td><td>루틴 id</td><td><code>Routine</code> (제목·일시·태그·단계·참여자)</td></tr>
-        <tr><td><code>routine_templates</code></td><td>템플릿 id</td><td>이름 + 할 일 목록</td></tr>
+        <tr><td><code>routines</code></td><td>(옛 데이터)</td><td>루틴을 서버로 옮기기 전 박스. 쓰는 코드 없음(탈퇴 때만 지움)</td></tr>
+        <tr><td><code>routine_templates</code></td><td>(옛 데이터)</td><td>템플릿을 서버로 옮기기 전 박스. 쓰는 코드 없음(탈퇴 때만 지움)</td></tr>
         <tr><td><code>devices</code></td><td>기기 id</td><td>이름 + 연결 시각</td></tr>
         <tr><td><code>profile</code></td><td><code>avatar_path</code></td><td>프로필 사진 파일 경로</td></tr>
         <tr><td><code>notifications</code></td><td>—</td><td>비어 있음</td></tr>
@@ -536,7 +536,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <li><span class="chip c-static">중복</span><h3><code>LocalStorageService</code> provider가 5군데</h3><p>routine, auth, devices, profile, notifications가 각자 만든다. 상태 없는 래퍼라 버그는 아니지만 <code>core/storage/</code>에 하나만 두는 편이 깔끔하다.</p></li>
       <li><span class="chip c-static">위치</span><h3><code>apiClientProvider</code>가 auth 안에 있다</h3><p>그래서 children이 auth를 import한다. 서버 연동 기능이 늘어나면 <code>core/network/</code>로 옮길 것.</p></li>
       <li><span class="chip c-static">미사용</span><h3>쓰지 않는 패키지·API·화면</h3><p><code>flutter_tts</code>, <code>flutter_local_notifications</code> 패키지, <code>signup</code>·<code>getChildren</code> 호출, <code>/watch-connection</code> 화면이 아직 아무 데서도 쓰이지 않는다.</p></li>
-      <li><span class="chip c-static">기능</span><h3>삭제가 없다</h3><p>루틴·기기·템플릿 저장소에 <code>delete</code>가 없다. 수정은 같은 id로 다시 <code>put</code>해서 덮어쓴다.</p></li>
+      <li><span class="chip c-static">기능</span><h3>기기 삭제가 없다</h3><p>기기 저장소에 <code>delete</code>가 없다(루틴·템플릿은 서버 삭제가 있다). 기기를 서버로 옮길 때 같이 추가한다.</p></li>
       <li><span class="chip c-static">테스트</span><h3><code>test/</code> 폴더가 없다</h3><p>순수 함수가 많은 <code>new_routine.dart</code>(<code>toJson</code>)와 <code>routine.dart</code>(<code>fromCalendarJson</code>)가 첫 단위 테스트 대상으로 가장 쉽다.</p></li>
     </ul>
   </div>

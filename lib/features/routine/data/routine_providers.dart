@@ -1,15 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
-import '../../../core/storage/local_storage_service.dart';
 import '../../auth/data/auth_providers.dart';
 import '../../children/data/child_providers.dart';
+import '../domain/change_scope.dart';
 import '../domain/new_routine.dart';
 import '../domain/routine.dart';
 import 'routine_repository.dart';
-
-/// 템플릿 provider들이 같이 쓰는 Hive 도구(템플릿은 아직 로컬에 저장한다).
-final localStorageServiceProvider = Provider((ref) => LocalStorageService());
 
 final routineRepositoryProvider = Provider<RoutineRepository>((ref) {
   return ApiRoutineRepository(ref.watch(apiClientProvider));
@@ -102,5 +99,62 @@ class RoutineActions {
         .createRoutine(childId: child.childId, routine: routine);
     _ref.invalidate(routineCalendarProvider);
     return count;
+  }
+
+  /// 루틴의 이름·시각을 고친다(`scope`에 따라 같은 반복의 오늘 이후도 함께).
+  Future<void> updateRoutine(
+    Routine routine, {
+    required String title,
+    required String startTime,
+    required String endTime,
+    required ChangeScope scope,
+  }) async {
+    await _ref.read(routineRepositoryProvider).updateRoutine(
+          bigRoutineId: routine.id,
+          title: title,
+          startTime: startTime,
+          endTime: endTime,
+          scope: scope,
+        );
+    _ref.invalidate(routineCalendarProvider);
+  }
+
+  Future<void> deleteRoutine(Routine routine, {required ChangeScope scope}) async {
+    await _ref
+        .read(routineRepositoryProvider)
+        .deleteRoutine(bigRoutineId: routine.id, scope: scope);
+    _ref.invalidate(routineCalendarProvider);
+  }
+
+  /// 하위 할 일 편집(추가·이름 변경·삭제·순서 변경). 서버가 바꾸는 범위가 각각
+  /// 다르다 — 추가만 [ChangeScope]를 고를 수 있고, 나머지는 그 날짜의 그 루틴
+  /// 하나에만 적용된다. 끝나면 달력 캐시를 무효화해서 화면이 새 값을 받는다.
+  Future<void> addSmallRoutine(Routine routine, String title, {required ChangeScope scope}) async {
+    await _ref.read(routineRepositoryProvider).addSmallRoutine(
+          bigRoutineId: routine.id,
+          title: title,
+          scope: scope,
+        );
+    _ref.invalidate(routineCalendarProvider);
+  }
+
+  Future<void> renameSmallRoutine(SmallRoutine step, String title) async {
+    await _ref
+        .read(routineRepositoryProvider)
+        .renameSmallRoutine(smallRoutineId: step.id, title: title);
+    _ref.invalidate(routineCalendarProvider);
+  }
+
+  Future<void> deleteSmallRoutine(SmallRoutine step) async {
+    await _ref.read(routineRepositoryProvider).deleteSmallRoutine(smallRoutineId: step.id);
+    _ref.invalidate(routineCalendarProvider);
+  }
+
+  Future<void> reorderSmallRoutines(Routine routine, List<SmallRoutine> ordered) async {
+    await _ref.read(routineRepositoryProvider).reorderSmallRoutines(
+          bigRoutineId: routine.id,
+          orderedIds: [for (final s in ordered) s.id],
+        );
+    _ref.invalidate(routineCalendarProvider);
   }
 }
