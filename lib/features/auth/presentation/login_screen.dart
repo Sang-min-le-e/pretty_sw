@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../children/data/child_providers.dart';
 import '../data/auth_providers.dart';
 
 /// Figma: 예소 / 앱 초안 / Group 451 (node-id 279:1832) 의 로그아웃 화면.
@@ -46,6 +47,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailController.text,
             password: _passwordController.text,
           );
+      // 이전에 다른 계정으로 로그인했다면 그 계정의 자녀 목록·선택이 캐시에 남아
+      // 있으니 버린다(다음에 읽을 때 이 계정 것을 새로 받아온다).
+      ref.invalidate(childListProvider);
+      ref.invalidate(selectedChildIdProvider);
       if (!mounted) return;
       context.go(user.name == null ? '/onboarding/guardian-info' : '/');
     } on ApiException catch (e) {

@@ -34,7 +34,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 | 무엇 | 결과물 |
 |---|---|
 | 프론트엔드 전체 구조 분석 | `docs/ARCHITECTURE.md` (글), `docs/code-map.html` (그림) |
-| 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 55개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
+| 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 56개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
 | 서버 연결 상태 점검 | 로그인·내 정보·자녀 등록만 서버, 루틴·기기·템플릿·프로필 사진은 Hive(로컬) |
 | 백엔드 pull 내용 정리 | 아래 3장 |
 | 작업 방식 결정 | KHU AI Developer Blueprint 방식 + `feature` 브랜치 → PR → 본인이 merge (`docs/GIT_WORKFLOW.md`) |
