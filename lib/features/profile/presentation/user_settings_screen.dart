@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
+import '../../../core/network/api_exception.dart';
+import '../../auth/data/account_actions.dart';
 import '../../auth/data/auth_providers.dart';
 import 'widgets/settings_card.dart';
 
@@ -57,6 +59,7 @@ class UserSettingsScreen extends ConsumerWidget {
                   title: '탈퇴 하시겠습니까?',
                   content: '기기 연결이 끊어지며, 앱에 저장된 정보가 모두 삭제됩니다.',
                   confirmLabel: '탈퇴하기',
+                  withdraw: true,
                 ),
               ),
               const SizedBox(height: 24),
@@ -67,16 +70,17 @@ class UserSettingsScreen extends ConsumerWidget {
     );
   }
 
-  // 로그아웃과 탈퇴하기 둘 다 이 화면에서는 같은 동작이다: 서버
-  // `access_uuid`를 무효화하고 로그인 화면으로 보낸다. 탈퇴하기가 실제로
-  // 계정을 지우지 못하는 이유는 `profile_screen.dart`의 같은 이름 메서드
-  // 주석 참고 — `DELETE /users/me`가 아직 백엔드에 없다.
+  // 로그아웃과 탈퇴하기가 확인창을 공유한다. [withdraw]가 false면 로그아웃
+  // (서버 `access_uuid` 무효화 후 로그인 화면), true면 탈퇴(서버에서 계정을
+  // 지우고 이 기기의 데이터까지 지운 뒤 로그인 화면) — 자세한 동작은
+  // `profile_screen.dart`의 `_confirmWithdraw` 주석과 `AccountActions.withdraw`.
   Future<void> _confirm(
     BuildContext context,
     WidgetRef ref, {
     required String title,
     required String content,
     required String confirmLabel,
+    bool withdraw = false,
   }) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -92,10 +96,19 @@ class UserSettingsScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) {
-      await ref.read(authRepositoryProvider).logout();
-      if (context.mounted) context.go('/login');
+    if (confirmed != true) return;
+    try {
+      if (withdraw) {
+        await ref.read(accountActionsProvider).withdraw();
+      } else {
+        await ref.read(authRepositoryProvider).logout();
+      }
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
     }
+    if (context.mounted) context.go('/login');
   }
 }
 

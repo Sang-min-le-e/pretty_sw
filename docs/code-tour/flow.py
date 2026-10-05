@@ -163,7 +163,7 @@ code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var
 
 <div class="wrap">
   <h1>Tomo 전체 파일 흐름</h1>
-  <p>화면이 어떻게 이어지는지, 파일이 어떤 층으로 나뉘는지, 그리고 <a href="tour.html"><b>코드 따라 읽기</b></a>의 54개 파일이 어떤 순서로 이어지는지를 한 장에 모았습니다. 파일 카드를 누르면 그 정류장으로 갑니다.</p>
+  <p>화면이 어떻게 이어지는지, 파일이 어떤 층으로 나뉘는지, 그리고 <a href="tour.html"><b>코드 따라 읽기</b></a>의 55개 파일이 어떤 순서로 이어지는지를 한 장에 모았습니다. 파일 카드를 누르면 그 정류장으로 갑니다.</p>
 
   <h2>1. 화면 이동 흐름</h2>
   <div class="card">

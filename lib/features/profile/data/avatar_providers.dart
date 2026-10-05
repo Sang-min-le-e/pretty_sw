@@ -45,4 +45,14 @@ class AvatarActions {
     await _ref.read(avatarRepositoryProvider).setAvatarPath(savedPath);
     _ref.invalidate(avatarPathProvider);
   }
+
+  /// 앱 폴더에 복사해 둔 프로필 사진 **파일**을 지운다(탈퇴용). 경로만 Hive에
+  /// 있고 파일은 따로 있어서, 박스를 지워도 사진 파일은 남기 때문이다. 사진을
+  /// 고른 적이 없거나 파일이 이미 없으면 아무것도 하지 않는다.
+  Future<void> deleteAvatarFile() async {
+    final path = await _ref.read(avatarRepositoryProvider).getAvatarPath();
+    if (path == null) return;
+    final file = File(path);
+    if (await file.exists()) await file.delete();
+  }
 }
