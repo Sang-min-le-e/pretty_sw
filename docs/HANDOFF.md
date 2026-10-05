@@ -1,6 +1,9 @@
-# 이어받기 노트 (2026-10-05 세션 → 맥북)
+# 이어받기 노트 (2026-10-06 갱신 → 맥북)
 
 리눅스 데스크톱에서 한 작업을 맥북에서 이어서 보기 위한 정리. 최신 상태는 항상 `feature` 브랜치에 있다.
+
+> **내일(기기 연동) 먼저 볼 것**: [MAC_SETUP.md](MAC_SETUP.md)(맥북 세팅·서버 주소·실기기 실행) →
+> [DEVICE_INTEGRATION.md](DEVICE_INTEGRATION.md)(앱·기기·백엔드가 정해야 할 것, 미팅 체크리스트, 서버만으로 흐름을 흉내 내는 스크립트).
 
 ## 1. 맥북에서 시작하기
 
@@ -56,10 +59,10 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 
 ## 5. 다음 할 일 (추천 순서)
 
-1. **이 `feature` 브랜치를 PR로 올려 merge하기.** 버튼 크기 수정과 이 문서들이 들어 있다. GIT_WORKFLOW의 흐름을 처음 연습하기에 좋다.
+1. **열려 있는 PR을 확인하고 merge하기.** 루틴 수정·삭제·템플릿(2단계 마무리)과 이 맥북 세팅 문서가 들어 있다.
 2. **코드 따라 읽기 1~5장 읽기.** 막히는 줄은 "login_screen 46줄"처럼 파일과 줄 번호로 질문한다.
 3. **테스트 + CI 추가.** `test/new_routine_test.dart`(`toJson`, 순수 함수라 쉬움)와 `.github/workflows/ci.yml`(PR마다 `flutter analyze` + `flutter test`).
-4. ~~탈퇴 버튼을 `DELETE /users/me`에 연결~~ — 완료. 루틴·템플릿 API 연동(2단계)도 완료. 다음은 `docs/frontend_migration_plan.md` 3단계(기기).
+4. ~~탈퇴 버튼을 `DELETE /users/me`에 연결~~ — 완료. 루틴·템플릿 API 연동(2단계)도 완료. **다음은 3단계(기기)** — 상세 계획·미정 사항·체크리스트는 `docs/DEVICE_INTEGRATION.md`. 앱↔기기 전달 방식(BLE UUID, 페이로드)이 정해져야 시작할 수 있다.
 5. **코드 따라 읽기에 빠진 화면 추가.** 기기 추가·상세·통계·와이파이 설정, 소셜 로그인 목업, 워치 연결은 아직 없다.
 
 ## 6. 알아둘 것
