@@ -4,6 +4,16 @@
 
 Figma 디자인(파일 "예소")을 기준으로 화면을 구현하고 있으며, 진행 상황은 아래 빌드 노트에 정리한다.
 
+## 문서
+
+| 파일 | 내용 |
+|---|---|
+| [`docs/HANDOFF.md`](docs/HANDOFF.md) | 최근 세션 정리와 다음 할 일. 다른 컴퓨터에서 이어받을 때 먼저 읽는다 |
+| [`docs/GIT_WORKFLOW.md`](docs/GIT_WORKFLOW.md) | `feature` 브랜치 → PR → `main` 작업 방식과 명령어 |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 코드 구조 가이드: 폴더, 데이터 흐름, 라우트 전체 표, 수정할 곳 찾기 |
+| `docs/code-map.html` | 구조를 그림으로 본 한 장 요약 (브라우저로 열기) |
+| `docs/code-tour/tour.html` | `main.dart`부터 실행 순서대로 코드를 한 줄씩 해설 (브라우저로 열기, `python3 docs/code-tour/build.py`로 다시 생성) |
+
 ## 빌드 노트
 
 개발할 때마다 갱신하는 세션 정리 문서. 그날 구현한 화면(Figma 노드 번호 포함), 화면 흐름 다이어그램, 발견·수정한 버그, 프로젝트 폴더 구조를 한 페이지에서 볼 수 있다.
