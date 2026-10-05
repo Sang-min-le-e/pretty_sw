@@ -6,6 +6,10 @@ class LocalStorageService {
   /// 파일에 따로 들고 있어서(`*_repository.dart`의 `_boxName`) 모아 둔 곳이
   /// 없다 — 탈퇴 때 전부 지워야 하므로 여기에 한 번 더 적는다. **새 박스를
   /// 만들면 이 목록에도 추가해야** 탈퇴 후에 데이터가 남지 않는다.
+  ///
+  /// `routines`는 루틴을 서버로 옮기기 전(Hive에 저장하던 시절)의 박스라 지금은
+  /// 쓰는 코드가 없지만, 그때 쓰던 기기에 데이터가 남아 있을 수 있어서 계속
+  /// 지운다.
   static const allBoxNames = [
     'auth',
     'routines',

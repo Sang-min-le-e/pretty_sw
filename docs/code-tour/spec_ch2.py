@@ -17,7 +17,7 @@ STOPS_CH.append(dict(
     file="lib/features/onboarding/presentation/guardian_info_screen.dart",
     title="온보딩 1단계: 보호자 이름 저장",
     role="초기 설정 1/3",
-    arrive="<code>login_screen.dart</code> 55줄에서 <code>user.name</code>이 null이면 <code>context.go('/onboarding/guardian-info')</code> → <code>router.dart</code> 70줄 <code>GuardianInfoScreen()</code>에서 왔습니다.",
+    arrive="<code>login_screen.dart</code> 55줄에서 <code>user.name</code>이 null이면 <code>context.go('/onboarding/guardian-info')</code> → <code>router.dart</code> 71줄 <code>GuardianInfoScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "Flutter 기본 위젯, Riverpod, 화면 이동 패키지. 로그인 화면과 같은 재료입니다.", []),
         (5, 7, "우리 코드 셋. <code>ApiException</code>(서버 오류를 한국어 메시지로 바꾼 것), <code>auth_providers.dart</code>(여기서 <code>userRepositoryProvider</code>를 꺼냅니다), 그리고 상단 진행 점 위젯 <code>StepDots</code>입니다.", []),
@@ -70,7 +70,7 @@ STOPS_CH.append(dict(
     file="lib/features/onboarding/presentation/child_info_screen.dart",
     title="온보딩 2단계: 자녀 등록",
     role="초기 설정 2/3",
-    arrive="<code>guardian_info_screen.dart</code> 62줄 <code>context.push('/onboarding/child-info')</code> → <code>router.dart</code> 75줄 <code>ChildInfoScreen()</code>에서 왔습니다.",
+    arrive="<code>guardian_info_screen.dart</code> 62줄 <code>context.push('/onboarding/child-info')</code> → <code>router.dart</code> 76줄 <code>ChildInfoScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "같은 재료(Flutter, Riverpod, go_router).", []),
         (5, 7, "<code>ApiException</code>, 자녀 데이터 계층(<code>child_providers.dart</code>), 진행 점.", []),
@@ -165,7 +165,7 @@ STOPS_CH.append(dict(
     file="lib/features/onboarding/presentation/device_connection_screen.dart",
     title="온보딩 3단계: 기기 연결 대기 화면",
     role="초기 설정 3/3",
-    arrive="<code>child_info_screen.dart</code> 76줄 <code>context.push('/onboarding/device-connection')</code> → <code>router.dart</code> 79줄 <code>DeviceConnectionScreen()</code>에서 왔습니다.",
+    arrive="<code>child_info_screen.dart</code> 76줄 <code>context.push('/onboarding/device-connection')</code> → <code>router.dart</code> 80줄 <code>DeviceConnectionScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "Flutter 위젯, SVG 그림을 그리는 패키지, 화면 이동.", []),
         (5, 6, "우리 위젯 둘. <code>PairingGlow</code>(은은한 확산광)와 진행 점.", []),

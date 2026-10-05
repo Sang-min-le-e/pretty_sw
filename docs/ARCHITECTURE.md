@@ -48,7 +48,7 @@ lib/
     ├── onboarding/    # 최초 로그인 3단계 설정
     ├── children/      # 자녀 등록                                ← 서버 연동
     ├── home/          # 홈 탭
-    ├── routine/       # 루틴 탭 (달력, 추가/수정, 템플릿)         ← 로컬(Hive)
+    ├── routine/       # 루틴 탭 (달력, 추가, 상세, 템플릿)       ← 루틴은 서버, 템플릿은 로컬(Hive)
     ├── devices/       # 기기 탭, 연결된 기기                      ← 로컬(Hive)
     ├── profile/       # 내 정보 탭, 프로필 사진                   ← 로컬 + 서버
     ├── notifications/ # 홈 벨 뱃지 개수 (데이터 넣는 곳 아직 없음)
@@ -73,19 +73,19 @@ features/routine/
 
 ```
 AddRoutineScreen (presentation)
-   │ ref.read(routineActionsProvider).addRoutine(routine)
+   │ ref.read(routineActionsProvider).createRoutine(NewRoutine)
    ▼
 RoutineActions (data/routine_providers.dart)
-   │ ① repository.saveRoutine(routine)
-   │ ② ref.invalidate(routineListProvider)   ← "목록 캐시 버려!"
+   │ ① repository.createRoutine(childId, routine)   ← 지금 보는 자녀(currentChildProvider)
+   │ ② ref.invalidate(routineCalendarProvider)      ← "달력 캐시 버려!"
    ▼
-LocalRoutineRepository (data/routine_repository.dart)
-   │ box.put(routine.id, routine.toMap())
+ApiRoutineRepository (data/routine_repository.dart)
+   │ POST /children/:childId/big-routines
    ▼
-Hive 박스 'routines'
+서버 (반복 방식대로 날짜별 루틴을 한꺼번에 만든다)
 
-   ② 때문에 routineListProvider를 watch하던 모든 provider/화면
-   (routinesForDateProvider → 달력, 오늘 할 일, 홈 "현재 루틴" 등)이 자동으로 다시 그려진다.
+   ② 때문에 routineCalendarProvider를 watch하던 모든 provider/화면
+   (routinesForDateProvider → 달력, 오늘 할 일, 홈 "현재 루틴", 기기 통계)이 서버에서 다시 받아 그린다.
 ```
 
 이 **"Actions 클래스가 저장 → invalidate"** 패턴이 routine / routine template / devices / avatar 에서 똑같이 반복된다. 새 기능도 이 모양을 따르면 된다.
@@ -135,7 +135,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 | 박스 이름 | 키 | 담는 것 | 저장소 클래스 |
 |---|---|---|---|
 | `auth` | `access_uuid` | 로그인 세션 값 `{value: uuid}` | `LocalAuthSessionRepository` |
-| `routines` | 루틴 id | `Routine.toMap()` | `LocalRoutineRepository` |
+| `routines` | (옛 데이터) | 루틴을 서버로 옮기기 전에 저장하던 박스. 지금은 쓰는 코드가 없고 탈퇴 때 지우려고 목록에만 남김 | 없음 |
 | `routine_templates` | 템플릿 id | `RoutineTemplate.toMap()` | `LocalRoutineTemplateRepository` |
 | `devices` | 기기 id | `ConnectedDevice.toMap()` | `LocalDeviceRepository` |
 | `profile` | `avatar_path` | 프로필 사진 파일 경로 `{path: ...}` | `LocalAvatarRepository` |
@@ -216,9 +216,9 @@ app.dart   MaterialApp.router(theme, appRouter)
 | 홈 화면 기기 카드·와이파이·현재 루틴 박스 | `home/presentation/widgets/device_overview.dart` (홈과 기기 상세가 공유) |
 | 달력 표시, 날짜별 루틴 개수 배지 | `routine/presentation/routine_screen.dart` + `routineCountsByDayProvider` |
 | 루틴 카드 한 장의 모양 | `routine/presentation/widgets/routine_card.dart` |
-| 루틴 추가/수정 폼, 반복 설정 | `routine/presentation/add_routine_screen.dart` (1,164줄, 가장 큼) |
-| 반복 규칙 → 날짜 목록 계산 | `routine/domain/routine_recurrence.dart` (순수 함수, 저장 시점에 날짜별 루틴을 여러 개 만든다) |
-| 루틴 데이터 필드 추가 | `routine/domain/routine.dart`의 필드 + `toMap`/`fromMap` 둘 다 |
+| 루틴 추가 폼, 반복 설정(매주만) | `routine/presentation/add_routine_screen.dart` (892줄) |
+| 새 루틴 요청 모양(반복 방식, 날짜, 할 일) | `routine/domain/new_routine.dart` (날짜를 펼치는 일은 서버가 한다) |
+| 루틴 데이터 필드 추가 | `routine/domain/routine.dart`의 필드 + `fromCalendarJson`(서버 응답) |
 | 기기 목록 순서/색 배정 | `devices/data/device_providers.dart`, `deviceAccentFor` |
 | 기기 통계(하루/주/월 성취도) | `devices/presentation/device_stats_screen.dart` |
 | 내 정보 탭 설정 카드 | `profile/presentation/widgets/settings_card.dart` |
@@ -242,10 +242,10 @@ app.dart   MaterialApp.router(theme, appRouter)
 3. `data/memo_providers.dart` — `memoRepositoryProvider`, `memoListProvider`(FutureProvider), `MemoActions`(저장 후 `invalidate`).
 4. 화면은 `ref.watch(memoListProvider)`로 읽고 `ref.read(memoActionsProvider).add(...)`로 쓴다.
 
-### 로컬 데이터를 서버로 옮기기 (예: 루틴)
+### 로컬 데이터를 서버로 옮기기 (예: 템플릿·기기. 루틴은 이미 옮겼다 — `routine/data/routine_repository.dart` 참고)
 화면은 provider만 보고 있으므로 **화면 코드는 거의 안 건드린다.**
-1. `ApiRoutineRepository implements RoutineRepository` 작성 (`children/data/child_repository.dart` 참고: `try { dio.get } on DioException catch (e) { throwAsApiException(e); }`).
-2. `routineRepositoryProvider`가 `LocalRoutineRepository` 대신 새 클래스를 돌려주게 한 줄만 바꾼다.
+1. `ApiXxxRepository implements XxxRepository` 작성 (`children/data/child_repository.dart` 참고: `try { dio.get } on DioException catch (e) { throwAsApiException(e); }`).
+2. `xxxRepositoryProvider`가 `LocalXxxRepository` 대신 새 클래스를 돌려주게 한 줄만 바꾼다.
 3. `fromMap` 대신 서버 응답 모양에 맞는 `fromJson` 추가.
 
 ### 새 API 호출 추가
@@ -266,7 +266,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 | 미사용 패키지 | `flutter_tts`, `flutter_local_notifications` | 쓸 계획 없으면 `pubspec.yaml`에서 제거 |
 | 미사용 API | `signup`, `getChildren` | 회원가입 화면·자녀 목록 화면 만들 때 사용 |
 | 삭제 기능 없음 | 루틴/기기/템플릿 저장소에 `delete`가 없다. 수정은 같은 id로 `put`해서 덮어쓴다. | 필요해지면 저장소에 `delete` 추가 후 Actions에서 invalidate |
-| 테스트 없음 | `test/` 폴더가 없다. | 순수 함수인 `routine_recurrence.dart`부터 단위 테스트 추가 추천 |
+| 테스트 없음 | `test/` 폴더가 없다. | 순수 함수가 많은 `new_routine.dart`의 `toJson`, `routine.dart`의 `fromCalendarJson`부터 단위 테스트 추가 추천 |
 
 ---
 

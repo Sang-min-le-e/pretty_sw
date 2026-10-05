@@ -42,7 +42,7 @@ CHAPTER_NOTE = {
     1: "앱이 켜지고 로그인 화면에서 서버에 로그인한다. 이름이 비어 있으면 2장, 있으면 3장(홈)으로 간다.",
     2: "처음 로그인한 보호자만 거친다: 이름 저장(PATCH /users/me) → 자녀 등록(POST /children) → 기기 연결 대기 → 홈.",
     3: "로그인 후의 중심 화면. 기기 목록은 서버가 아니라 기기 안 Hive에 저장돼 있다.",
-    4: "하단 탭 1번. 루틴도 Hive에 저장하며, 저장할 때마다 provider를 invalidate해서 화면이 갱신된다.",
+    4: "하단 탭 1번. 루틴은 지금 보는 자녀의 서버 데이터(calendar)이고, 만들 때마다 캐시를 invalidate해서 화면이 갱신된다. 템플릿만 아직 Hive.",
     5: "하단 탭 3번. 이름 변경은 서버(PATCH), 프로필 사진은 기기 안에만 저장한다.",
 }
 
@@ -197,7 +197,7 @@ code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var
       <div class="lay core"><b>도구</b><span><code>ApiClient(Dio)</code><br><code>LocalStorageService</code></span></div>
       <div class="lay src"><b>데이터가 사는 곳</b><span>서버(백엔드) · 기기 안 Hive</span></div>
     </div>
-    <p class="note" style="margin-top:12px"><b>서버에 있는 것</b>: 로그인, 내 정보(이름), 자녀 등록. <b>기기 안(Hive)에만 있는 것</b>: 루틴, 템플릿, 연결된 기기, 프로필 사진 경로, 로그인 세션(<code>accessUuid</code>). 쓰기가 끝나면 <code>ref.invalidate(목록Provider)</code>로 낡은 캐시를 버려 화면이 새로 그려집니다.</p>
+    <p class="note" style="margin-top:12px"><b>서버에 있는 것</b>: 로그인, 내 정보(이름), 자녀, 루틴. <b>기기 안(Hive)에만 있는 것</b>: 템플릿, 연결된 기기, 프로필 사진 경로, 로그인 세션(<code>accessUuid</code>). 쓰기가 끝나면 <code>ref.invalidate(목록Provider)</code>로 낡은 캐시를 버려 화면이 새로 그려집니다.</p>
   </div>
 
   <h2>3. 코드 따라 읽기: 장별 파일 순서</h2>

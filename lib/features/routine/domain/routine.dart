@@ -1,86 +1,104 @@
-/// 루틴 하나(예: "11:00 교무실 가기")를 나타내는 도메인 모델.
+/// 루틴 하나(예: "07:30~08:30 아침 준비")를 나타내는 도메인 모델. 서버
+/// 용어로는 **빅루틴 하루치**다 — 서버는 반복 루틴을 날짜별 행으로 미리 만들어
+/// 두기 때문에(`docs/API.md` 9장), 같은 반복에서 나온 행들은 [seriesId]가 같고
+/// 날짜([date])만 다르다.
 ///
-/// Figma의 "1. 일정 탭 첫 화면"(node 392:1740)에서, 달력에서 선택한 날짜
-/// 아래에 나열되는 카드 한 장 = 루틴 한 개다. 여러 단계로 이뤄진 루틴은
-/// [steps]가 "급식실 가기 → 배식 받기"처럼 번호가 매겨진 하위 할 일
-/// 목록으로 카드 안에 항상 펼쳐져 보인다.
+/// 루틴 안의 하위 할 일은 [smallRoutines]다. 완료 여부는 루틴이 아니라 이
+/// 할 일마다 있다(`PENDING`/`DONE`) — 아이가 기기에서 할 일을 완료하면 서버에
+/// 올라가고, 앱은 읽기만 한다.
 class Routine {
   const Routine({
     required this.id,
+    required this.seriesId,
+    required this.date,
     required this.title,
-    required this.dateTime,
-    required this.tag,
-    this.steps = const [],
-    this.participants = const [],
+    required this.startTime,
+    required this.endTime,
+    this.smallRoutines = const [],
   });
 
-  final String id;
+  /// 서버의 `bigRoutineId`.
+  final int id;
 
-  /// 루틴 이름. 카드에는 시간과 함께 "11:00 교무실 가기"처럼 표시된다.
+  /// 같은 반복으로 만들어진 루틴들을 묶는 값.
+  final String seriesId;
+
+  /// 이 루틴이 속한 날짜. 시각은 0시로 고정(날짜만 의미가 있다).
+  final DateTime date;
+
   final String title;
 
-  /// 루틴이 속한 날짜(연/월/일)와 시작 시각(시/분)을 하나로 합쳐서 저장한다.
-  /// 달력에서 "이 날짜에 루틴이 있는지"를 확인할 땐 연/월/일만 보고,
-  /// 카드 목록을 시간순으로 정렬/표시할 땐 시/분을 함께 쓴다.
-  final DateTime dateTime;
+  /// `"07:30"` 형식(`HH:mm`). 서버가 시각을 비워 둔 루틴이 올 수도 있어서
+  /// 없으면 빈 문자열이다.
+  final String startTime;
+  final String endTime;
 
-  /// 카드에 "・공통" 또는 "・지예님의 기기"처럼 붙는 꼬리표.
-  /// 이 루틴을 모든 기기가 공유하는지, 특정 기기 하나만 쓰는지를 나타낸다.
-  final String tag;
+  /// 하위 할 일. 서버가 `sortOrder` 순으로 준다. 단일 루틴이어도 할 일 1개
+  /// (제목과 같은 이름)를 갖는다 — 완료 여부가 할 일에 붙기 때문이다.
+  final List<SmallRoutine> smallRoutines;
 
-  /// 카드를 펼쳤을 때 보이는 하위 할 일 목록(순서대로 번호가 매겨진다).
-  /// 비어 있으면 카드에 펼침 화살표(›) 없이 시간/제목/꼬리표만 보여준다.
-  final List<String> steps;
+  int get totalCount => smallRoutines.length;
+  int get doneCount => smallRoutines.where((s) => s.done).length;
 
-  /// 이 루틴을 수행하는 가족 구성원과, 각자 완료했는지 여부.
-  /// Figma "3. 단일루틴 상세보기"(node 392:2096) 화면에서 원형 진행률
-  /// (완료 인원 수 / 전체 인원 수)과 완료·미완료 아바타 목록을 그리는 데
-  /// 쓰인다. "・공통" 루틴은 가족 구성원 전체가, "・OO님의 기기" 루틴은
-  /// 해당 구성원 한 명만 들어간다.
-  final List<RoutineParticipant> participants;
+  /// 카드 한 줄에 쓰는 시간 표기. 종료 시각이 있으면 "07:30~08:30".
+  String get timeLabel {
+    if (startTime.isEmpty) return '';
+    return endTime.isEmpty ? startTime : '$startTime~$endTime';
+  }
 
-  factory Routine.fromMap(Map<String, dynamic> map) {
-    return Routine(
-      id: map['id'] as String,
-      title: map['title'] as String,
-      dateTime: DateTime.parse(map['dateTime'] as String),
-      tag: map['tag'] as String,
-      steps: List<String>.from(map['steps'] as List? ?? const []),
-      participants: (map['participants'] as List? ?? const [])
-          .map((raw) => RoutineParticipant.fromMap(Map<String, dynamic>.from(raw)))
-          .toList(),
+  /// 날짜와 시작 시각을 합친 값(정렬·기간 비교용). 시작 시각이 없으면 0시.
+  DateTime get startDateTime {
+    final parts = startTime.split(':');
+    if (parts.length != 2) return date;
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.tryParse(parts[0]) ?? 0,
+      int.tryParse(parts[1]) ?? 0,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'title': title,
-      'dateTime': dateTime.toIso8601String(),
-      'tag': tag,
-      'steps': steps,
-      'participants': participants.map((p) => p.toMap()).toList(),
-    };
+  /// `GET /children/:childId/calendar` 응답의 `bigRoutines` 원소 하나를
+  /// [date](그 날짜 항목의 `date`)와 함께 모델로 바꾼다.
+  factory Routine.fromCalendarJson(DateTime date, Map<String, dynamic> json) {
+    final smalls = (json['smallRoutines'] as List? ?? const [])
+        .map((raw) => SmallRoutine.fromJson(raw as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return Routine(
+      id: json['bigRoutineId'] as int,
+      seriesId: json['seriesId'] as String? ?? '',
+      date: date,
+      title: json['title'] as String,
+      startTime: json['startTime'] as String? ?? '',
+      endTime: json['endTime'] as String? ?? '',
+      smallRoutines: smalls,
+    );
   }
 }
 
-/// [Routine.participants]의 원소 하나. 이름과 완료 여부만 저장한다 —
-/// 아이콘 색깔 등 화면에 그릴 때 필요한 스타일은
-/// `routine_detail_screen.dart`의 [FamilyMemberStyle]이 이름으로 찾아준다.
-class RoutineParticipant {
-  const RoutineParticipant({required this.name, required this.completed});
+/// 루틴 안의 하위 할 일 하나(예: "세수하기"). [done]은 서버의
+/// `status == 'DONE'`이다.
+class SmallRoutine {
+  const SmallRoutine({
+    required this.id,
+    required this.title,
+    required this.sortOrder,
+    required this.done,
+  });
 
-  final String name;
-  final bool completed;
+  final int id;
+  final String title;
+  final int sortOrder;
+  final bool done;
 
-  factory RoutineParticipant.fromMap(Map<String, dynamic> map) {
-    return RoutineParticipant(
-      name: map['name'] as String,
-      completed: map['completed'] as bool,
+  factory SmallRoutine.fromJson(Map<String, dynamic> json) {
+    return SmallRoutine(
+      id: json['smallRoutineId'] as int,
+      title: json['title'] as String,
+      sortOrder: json['sortOrder'] as int? ?? 0,
+      done: json['status'] == 'DONE',
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {'name': name, 'completed': completed};
   }
 }

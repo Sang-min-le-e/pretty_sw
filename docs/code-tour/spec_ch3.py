@@ -19,7 +19,7 @@ STOPS_CH.append(dict(
     file="lib/features/home/presentation/home_screen.dart",
     title="홈 화면의 뼈대",
     role="홈 탭 (/)",
-    arrive="<code>device_connection_screen.dart</code> 67줄 <code>context.go('/')</code>, 또는 이름이 이미 있는 계정이 <code>login_screen.dart</code> 55줄에서 <code>context.go('/')</code> → <code>router.dart</code> 86줄 <code>HomeScreen()</code>에서 왔습니다.",
+    arrive="<code>device_connection_screen.dart</code> 67줄 <code>context.go('/')</code>, 또는 이름이 이미 있는 계정이 <code>login_screen.dart</code> 55줄에서 <code>context.go('/')</code> → <code>router.dart</code> 87줄 <code>HomeScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 4, "Flutter 위젯, Riverpod, SVG 그림, 화면 이동.", []),
         (6, 10, "우리 코드 다섯. 하단 탭바, 기기 목록 provider와 모델, 알림 개수 provider, 그리고 홈과 기기 상세가 같이 쓰는 위젯 모음(<code>device_overview.dart</code>)입니다.", []),
@@ -165,9 +165,8 @@ STOPS_CH.append(dict(
         (583, 589, "흰 카드 상자와 <code>Column</code>.", []),
         (590, 610, "\"현재 루틴\" 라벨과 오른쪽 \">\" 화살표.", []),
         (611, 620, "<b>루틴이 없으면</b> \"오늘 등록된 루틴이 없어요\" 글자.", ["collectionif"]),
-        (621, 643, "<b>있으면</b> \"시각 제목\"(<code>'${_timeLabel(routine.dateTime)} ${routine.title}'</code>)과 옆의 \"・태그\". 줄 안에 식을 넣으려고 <code>${...}</code>를 씁니다.", ["interp"]),
-        (644, 646, "괄호 닫기.", []),
-        (648, 653, "<b>시각을 \"09:05\" 모양 글자로.</b> <code>padLeft(2, '0')</code>로 한 자리 숫자 앞에 0을 붙입니다. 두 문자열 리터럴을 붙여 쓰면 하나로 이어집니다. 앞의 <code>static</code>은 객체를 만들지 않고 클래스 이름으로 바로 부를 수 있는 함수라는 뜻입니다.", []),
+        (621, 643, "<b>있으면</b> \"시작~종료 시각 제목\"(<code>routine.timeLabel</code>은 \"07:30~08:30\" 모양이고 시각이 없으면 빈 글자)과 옆의 \"・완료 1/3\"(완료한 할 일 수 / 전체 할 일 수). 줄 안에 식을 넣으려고 <code>${...}</code>를 씁니다.", ["interp"]),
+        (644, 647, "괄호 닫기.", []),
     ],
     next_hint="홈 화면 맨 아래 <code>BottomNavBar(currentIndex: 0)</code>(<code>home_screen.dart</code> 51줄)를 Ctrl+클릭해 <code>bottom_nav_bar.dart</code>로 갑니다.",
 ))
@@ -225,7 +224,7 @@ STOPS_CH.append(dict(
     file="lib/features/devices/presentation/devices_screen.dart",
     title="기기 탭: 2열 카드 그리드",
     role="기기 탭 (/devices)",
-    arrive="하단 탭바 두 번째 기기 아이콘 → <code>bottom_nav_bar.dart</code> 38줄 <code>context.go('/devices')</code> → <code>router.dart</code> 158줄 <code>DevicesScreen()</code>에서 왔습니다.",
+    arrive="하단 탭바 두 번째 기기 아이콘 → <code>bottom_nav_bar.dart</code> 38줄 <code>context.go('/devices')</code> → <code>router.dart</code> 153줄 <code>DevicesScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 4, "Flutter 위젯, Riverpod, SVG, 화면 이동.", []),
         (6, 8, "하단 탭바, 위에서 본 공용 위젯 모음(<code>AssetIcon</code>, 색 상수, <code>deviceCardDecoration</code>), 기기 provider.", []),
@@ -258,7 +257,7 @@ STOPS_CH.append(dict(
     file="lib/features/devices/presentation/connected_devices_screen.dart",
     title="연결된 기기 화면",
     role="/connected-devices",
-    arrive="<code>home_screen.dart</code> 85줄 <code>context.push('/connected-devices')</code> → <code>router.dart</code> 227줄 <code>ConnectedDevicesScreen()</code>에서 왔습니다.",
+    arrive="<code>home_screen.dart</code> 85줄 <code>context.push('/connected-devices')</code> → <code>router.dart</code> 222줄 <code>ConnectedDevicesScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "Flutter 위젯, Riverpod, 화면 이동.", []),
         (5, 8, "뒤로가기 줄 위젯(<code>BackHeader</code>), 공용 상수, 기기 provider, \"라벨 + 입력 칸\" 위젯(<code>LabeledFieldRow</code>).", []),
