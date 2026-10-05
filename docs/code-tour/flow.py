@@ -42,7 +42,7 @@ CHAPTER_NOTE = {
     1: "앱이 켜지고 로그인 화면에서 서버에 로그인한다. 이름이 비어 있으면 2장, 있으면 3장(홈)으로 간다.",
     2: "처음 로그인한 보호자만 거친다: 이름 저장(PATCH /users/me) → 자녀 등록(POST /children) → 기기 연결 대기 → 홈.",
     3: "로그인 후의 중심 화면. 기기 목록은 서버가 아니라 기기 안 Hive에 저장돼 있다.",
-    4: "하단 탭 1번. 루틴은 지금 보는 자녀의 서버 데이터(calendar)이고, 만들 때마다 캐시를 invalidate해서 화면이 갱신된다. 템플릿만 아직 Hive.",
+    4: "하단 탭 1번. 루틴은 지금 보는 자녀의 서버 데이터(calendar)이고, 만들거나 고칠 때마다 캐시를 invalidate해서 화면이 갱신된다. 템플릿도 서버(자녀별).",
     5: "하단 탭 3번. 이름 변경은 서버(PATCH), 프로필 사진은 기기 안에만 저장한다.",
 }
 
@@ -163,7 +163,7 @@ code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var
 
 <div class="wrap">
   <h1>Tomo 전체 파일 흐름</h1>
-  <p>화면이 어떻게 이어지는지, 파일이 어떤 층으로 나뉘는지, 그리고 <a href="tour.html"><b>코드 따라 읽기</b></a>의 56개 파일이 어떤 순서로 이어지는지를 한 장에 모았습니다. 파일 카드를 누르면 그 정류장으로 갑니다.</p>
+  <p>화면이 어떻게 이어지는지, 파일이 어떤 층으로 나뉘는지, 그리고 <a href="tour.html"><b>코드 따라 읽기</b></a>의 61개 파일이 어떤 순서로 이어지는지를 한 장에 모았습니다. 파일 카드를 누르면 그 정류장으로 갑니다.</p>
 
   <h2>1. 화면 이동 흐름</h2>
   <div class="card">
@@ -182,7 +182,7 @@ code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var
     <p class="note" style="margin-top:14px">홈에 도착하면 하단 탭바(<code>bottom_nav_bar.dart</code>)로 네 화면을 오갑니다. 탭은 <code>context.go</code>로 갈아치우고, 그 안의 상세·추가 화면은 <code>context.push</code>로 위에 쌓습니다.</p>
     <div class="tabs">
       <div class="tab"><b>0 · 홈 /</b><span>기기 캐러셀, 연결된 기기, 현재 루틴<br>→ 기기 추가, 연결된 기기</span></div>
-      <div class="tab"><b>1 · 루틴 /routine</b><span>달력, 날짜별 카드<br>→ 오늘 할 일, 상세, 추가·수정, 템플릿</span></div>
+      <div class="tab"><b>1 · 루틴 /routine</b><span>달력, 날짜별 카드<br>→ 오늘 할 일, 상세(수정·할 일 편집·삭제), 추가, 템플릿</span></div>
       <div class="tab"><b>2 · 기기 /devices</b><span>기기 카드 그리드<br>→ 기기 상세, 설정, 통계, 와이파이</span></div>
       <div class="tab"><b>3 · 프로필 /profile</b><span>설정 카드<br>→ 프로필 관리, 사용자 설정, 언어, 로그인 기록</span></div>
     </div>
@@ -197,7 +197,7 @@ code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var
       <div class="lay core"><b>도구</b><span><code>ApiClient(Dio)</code><br><code>LocalStorageService</code></span></div>
       <div class="lay src"><b>데이터가 사는 곳</b><span>서버(백엔드) · 기기 안 Hive</span></div>
     </div>
-    <p class="note" style="margin-top:12px"><b>서버에 있는 것</b>: 로그인, 내 정보(이름), 자녀, 루틴. <b>기기 안(Hive)에만 있는 것</b>: 템플릿, 연결된 기기, 프로필 사진 경로, 로그인 세션(<code>accessUuid</code>). 쓰기가 끝나면 <code>ref.invalidate(목록Provider)</code>로 낡은 캐시를 버려 화면이 새로 그려집니다.</p>
+    <p class="note" style="margin-top:12px"><b>서버에 있는 것</b>: 로그인, 내 정보(이름), 자녀, 루틴, 템플릿. <b>기기 안(Hive)에만 있는 것</b>: 연결된 기기, 프로필 사진 경로, 로그인 세션(<code>accessUuid</code>). 쓰기가 끝나면 <code>ref.invalidate(목록Provider)</code>로 낡은 캐시를 버려 화면이 새로 그려집니다.</p>
   </div>
 
   <h2>3. 코드 따라 읽기: 장별 파일 순서</h2>

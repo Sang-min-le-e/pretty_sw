@@ -8,6 +8,7 @@ import '../data/routine_providers.dart';
 import '../data/routine_template_providers.dart';
 import '../domain/new_routine.dart';
 import '../domain/routine_template.dart';
+import 'widgets/routine_form_widgets.dart';
 
 /// Figma: 예소 / "5. 단일 루틴 추가하기" · "6. 복합 루틴 추가하기" (node-id
 /// 392:2567 / 392:2977, "앱 초안 3" 프레임 안). "4. 루틴 추가 선택
@@ -15,7 +16,7 @@ import '../domain/routine_template.dart';
 /// 도착한다 — 두 화면은 [compound] 플래그 하나만 다르고 나머지 폼(이름/
 /// 시간/일반·기간·반복·다중 탭)은 완전히 같아서 화면 하나로 합쳤다.
 /// "복합 루틴"일 때만 "행동 추가"(하위 할 일 목록)와 "템플릿에 저장하기"
-/// 체크박스가 추가로 보인다.
+/// 체크박스가 추가로 보인다. 템플릿은 서버에 자녀별로 저장된다.
 ///
 /// 만든 루틴은 지금 보는 자녀(`currentChildProvider`)의 것으로 서버에
 /// 저장된다(`POST /children/:childId/big-routines`). 네 탭은 서버의 반복
@@ -29,8 +30,9 @@ import '../domain/routine_template.dart';
 /// 구분하지 않고 하위 할 일 개수로만 나뉘므로, 단일 루틴도 제목과 같은 이름의
 /// 할 일 하나를 보낸다(완료 여부가 할 일에 붙기 때문).
 ///
-/// (루틴 수정은 서버 규칙 — 같은 반복 전체/해당 날짜만, 지난 날짜는 불변 —
-/// 에 맞춰 다시 만들 때까지 이 화면에서 뺐다.)
+/// (루틴 수정과 할 일 편집은 이 폼이 아니라 상세 화면의 톱니바퀴에서 여는
+/// `RoutineEditScreen`·`RoutineStepsScreen`이 맡는다 — 서버가 수정에서는 날짜·
+/// 반복을 못 바꿔서 화면을 따로 두었다.)
 class AddRoutineScreen extends ConsumerStatefulWidget {
   const AddRoutineScreen({super.key, this.compound = false, this.template});
 
@@ -61,8 +63,9 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   final _stepInputController = TextEditingController();
   late List<String> _steps = List.of(widget.template?.steps ?? const []);
 
-  TimeOfDay _startTime = const TimeOfDay(hour: 0, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 0, minute: 0);
+  // 템플릿으로 들어왔으면 그 템플릿의 시각으로 시작한다(없으면 00:00).
+  late TimeOfDay _startTime = parseHhmm(widget.template?.startTime);
+  late TimeOfDay _endTime = parseHhmm(widget.template?.endTime);
   String _activeTab = '일반';
   bool _saving = false;
   bool _saveAsTemplate = false;
@@ -133,10 +136,6 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// `TimeOfDay`를 서버 형식 `"07:30"`으로.
-  static String _hhmm(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
   /// 폼 값을 서버 요청으로 바꾼다. 선택한 탭에서 아직 덜 정해진 값이 있으면
   /// 이유를 스낵바로 알리고 `null`을 돌려준다.
   NewRoutine? _toRequest(String title) {
@@ -151,8 +150,8 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     }) {
       return NewRoutine(
         title: title,
-        startTime: _hhmm(_startTime),
-        endTime: _hhmm(_endTime),
+        startTime: formatHhmm(_startTime),
+        endTime: formatHhmm(_endTime),
         repeatType: type,
         startDate: start,
         endDate: end,
@@ -217,20 +216,29 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     try {
       await ref.read(routineActionsProvider).createRoutine(request);
 
-      // 템플릿은 아직 로컬(Hive)에 저장한다(서버 연동은 다음 단계).
+      // 템플릿 저장은 루틴을 만든 뒤에 한다. 실패해도 루틴은 이미 만들어졌으므로
+      // 화면에 남아 다시 누르게 하면 같은 루틴이 또 생긴다 — 오류는 알림만 하고
+      // 달력으로 넘어간다.
+      String? templateError;
       if (widget.compound && _saveAsTemplate) {
-        await ref.read(routineTemplateActionsProvider).addTemplate(
-          RoutineTemplate(
-            id: DateTime.now().microsecondsSinceEpoch.toString(),
-            title: title,
-            steps: _steps,
-          ),
-        );
+        try {
+          await ref.read(routineTemplateActionsProvider).addTemplate(
+                title: title,
+                startTime: formatHhmm(_startTime),
+                endTime: formatHhmm(_endTime),
+                steps: _steps,
+              );
+        } on ApiException catch (e) {
+          templateError = e.message;
+        }
       }
 
       if (!mounted) return;
       // "완료" = 저장하고 달력 화면으로 돌아간다. 선택 화면(4)까지 스택에
       // 두 겹 쌓여 있는 상태라 pop 대신 go로 곧장 '/routine'으로 보낸다.
+      if (templateError != null) {
+        _showMessage('루틴은 만들었지만 템플릿은 저장하지 못했어요: $templateError');
+      }
       context.go('/routine');
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -291,7 +299,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                   children: [
                     const Text('루틴 이름', style: TextStyle(color: _labelColor, fontSize: 15)),
                     const SizedBox(height: 10),
-                    _PillField(
+                    PillField(
                       child: TextField(
                         controller: _titleController,
                         style: const TextStyle(color: _labelColor, fontSize: 16),
@@ -309,7 +317,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _TimeField(
+                          child: TimeField(
                             time: _startTime,
                             suffix: '부터',
                             onTap: () => _pickTime(isStart: true),
@@ -317,7 +325,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _TimeField(
+                          child: TimeField(
                             time: _endTime,
                             suffix: '까지',
                             onTap: () => _pickTime(isStart: false),
@@ -329,7 +337,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                       const SizedBox(height: 22),
                       const Text('행동 추가', style: TextStyle(color: _labelColor, fontSize: 15)),
                       const SizedBox(height: 10),
-                      _PillField(
+                      PillField(
                         child: Row(
                           children: [
                             Expanded(
@@ -548,59 +556,6 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
         _multiDates.add(date);
       }
     });
-  }
-}
-
-/// 흰 알약 모양(radius 21) + 옅은 그림자 입력 필드 껍데기. 텍스트필드와
-/// 시간 선택 버튼이 똑같은 껍데기를 재사용한다.
-class _PillField extends StatelessWidget {
-  const _PillField({required this.child, this.onTap});
-
-  final Widget child;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = Container(
-      height: 55,
-      padding: const EdgeInsets.symmetric(horizontal: 22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(21),
-        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 2)],
-      ),
-      alignment: Alignment.centerLeft,
-      child: child,
-    );
-    if (onTap == null) return content;
-    return InkWell(borderRadius: BorderRadius.circular(21), onTap: onTap, child: content);
-  }
-}
-
-/// "00:00 부터" / "00:00 까지"처럼 시각 + 안내 글자가 함께 붙은 시간
-/// 선택 버튼. 누르면 표준 [showTimePicker] 다이얼로그가 뜬다.
-class _TimeField extends StatelessWidget {
-  const _TimeField({required this.time, required this.suffix, required this.onTap});
-
-  final TimeOfDay time;
-  final String suffix;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final label =
-        '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
-    return _PillField(
-      onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: _AddRoutineScreenState._labelColor, fontSize: 16)),
-          Text(suffix, style: const TextStyle(color: _AddRoutineScreenState._placeholderColor, fontSize: 16)),
-        ],
-      ),
-    );
   }
 }
 

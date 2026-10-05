@@ -3,16 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../data/routine_template_providers.dart';
 import '../domain/routine_template.dart';
 
 /// Figma: 예소 / "템플릿 사용" (node-id 415:1847, "앱 초안 3" 프레임 안).
 /// "루틴 추가 선택 화면"에서 "템플릿 사용"을 누르면 도착한다.
 ///
-/// 저장된 템플릿(이름 + 하위 할 일 목록)을 목록으로 보여주고, 하나를
-/// 고르면 "단일 루틴 추가하기" 폼으로 넘어가면서 이름/할 일 목록을 미리
-/// 채워준다 — 시간/대상/날짜는 매번 다를 수 있어서 템플릿에는 담지 않고
-/// 그 폼에서 새로 고른다.
+/// 지금 보는 자녀의 저장된 템플릿(이름·시간 + 하위 할 일 목록)을 서버에서 받아
+/// 목록으로 보여주고, 하나를 고르면 "단일 루틴 추가하기" 폼으로 넘어가면서
+/// 이름/시간/할 일 목록을 미리 채워준다 — 날짜와 반복은 매번 다를 수 있어서
+/// 템플릿에는 담지 않고 그 폼에서 새로 고른다. 카드 오른쪽의 휴지통으로 템플릿을
+/// 지울 수 있다(이미 만든 루틴은 그대로 남는다).
 class RoutineTemplateListScreen extends ConsumerWidget {
   const RoutineTemplateListScreen({super.key});
 
@@ -86,13 +88,40 @@ class RoutineTemplateListScreen extends ConsumerWidget {
   }
 }
 
-class _TemplateCard extends StatelessWidget {
+class _TemplateCard extends ConsumerWidget {
   const _TemplateCard({required this.template});
 
   final RoutineTemplate template;
 
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('템플릿을 지울까요?'),
+        content: Text("'${template.title}' 템플릿을 지워요. 이 템플릿으로 이미 만든 루틴은 그대로 남아요."),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('지우기', style: TextStyle(color: Color(0xFFE71A1A))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(routineTemplateActionsProvider).deleteTemplate(template.id);
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timeLabel = template.startTime.isEmpty
+        ? ''
+        : (template.endTime.isEmpty ? template.startTime : '${template.startTime}~${template.endTime}');
     return GestureDetector(
       onTap: () => context.push('/routine/add/single', extra: template),
       child: Container(
@@ -112,7 +141,7 @@ class _TemplateCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    template.title,
+                    '${timeLabel.isEmpty ? '' : '$timeLabel '}${template.title}',
                     style: const TextStyle(
                       color: RoutineTemplateListScreen._labelColor,
                       fontSize: 15,
@@ -120,12 +149,12 @@ class _TemplateCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                RotatedBox(
-                  quarterTurns: 1,
-                  child: SvgPicture.asset(
-                    'assets/images/home_chevron_small.svg',
-                    width: 7,
-                    height: 4,
+                InkResponse(
+                  onTap: () => _confirmDelete(context, ref),
+                  radius: 18,
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(Icons.delete_outline, size: 20, color: Color(0xFFA3A3A3)),
                   ),
                 ),
               ],
