@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/storage/local_storage_service.dart';
+import '../../children/data/child_providers.dart';
 import '../../devices/data/device_providers.dart';
 import '../../notifications/data/notification_providers.dart';
 import '../../profile/data/avatar_providers.dart';
@@ -43,6 +44,8 @@ class AccountActions {
     await LocalStorageService().deleteAllBoxes();
 
     _ref.invalidate(currentUserProvider);
+    _ref.invalidate(childListProvider);
+    _ref.invalidate(selectedChildIdProvider);
     _ref.invalidate(routineListProvider);
     _ref.invalidate(routineTemplateListProvider);
     _ref.invalidate(deviceListProvider);

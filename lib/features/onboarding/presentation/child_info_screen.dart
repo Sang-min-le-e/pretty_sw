@@ -63,11 +63,15 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(childRepositoryProvider).createChild(
+      final child = await ref.read(childRepositoryProvider).createChild(
             name: _nameController.text,
             birthDate: DateTime(_year!, _month!, _day!),
             relationship: _relationships[_relationship]!,
           );
+      // 루틴 탭의 자녀 선택에 방금 등록한 자녀가 바로 보이고 선택돼 있도록
+      // 목록을 새로 받고 이 자녀를 고른 상태로 둔다.
+      ref.invalidate(childListProvider);
+      ref.read(selectedChildIdProvider.notifier).state = child.childId;
       if (!mounted) return;
       context.push('/onboarding/device-connection');
     } on ApiException catch (e) {

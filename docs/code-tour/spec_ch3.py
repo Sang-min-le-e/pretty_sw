@@ -19,7 +19,7 @@ STOPS_CH.append(dict(
     file="lib/features/home/presentation/home_screen.dart",
     title="홈 화면의 뼈대",
     role="홈 탭 (/)",
-    arrive="<code>device_connection_screen.dart</code> 67줄 <code>context.go('/')</code>, 또는 이름이 이미 있는 계정이 <code>login_screen.dart</code> 50줄에서 <code>context.go('/')</code> → <code>router.dart</code> 86줄 <code>HomeScreen()</code>에서 왔습니다.",
+    arrive="<code>device_connection_screen.dart</code> 67줄 <code>context.go('/')</code>, 또는 이름이 이미 있는 계정이 <code>login_screen.dart</code> 55줄에서 <code>context.go('/')</code> → <code>router.dart</code> 86줄 <code>HomeScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 4, "Flutter 위젯, Riverpod, SVG 그림, 화면 이동.", []),
         (6, 10, "우리 코드 다섯. 하단 탭바, 기기 목록 provider와 모델, 알림 개수 provider, 그리고 홈과 기기 상세가 같이 쓰는 위젯 모음(<code>device_overview.dart</code>)입니다.", []),

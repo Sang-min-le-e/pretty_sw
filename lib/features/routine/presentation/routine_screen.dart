@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
+import '../../children/presentation/child_selector.dart';
 import '../data/routine_providers.dart';
 import 'widgets/add_routine_button.dart';
 import 'widgets/routine_card.dart';
@@ -163,6 +164,11 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // 어느 자녀의 루틴을 볼지 고르는 칩 줄(서버 루틴 API가 자녀별).
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(26, 16, 26, 0),
+                        child: ChildSelector(),
+                      ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
                         child: _MonthHeader(
