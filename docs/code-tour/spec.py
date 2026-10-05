@@ -23,6 +23,14 @@ CONCEPTS = {
     "factory": ("factory 생성자 / fromJson", "<code>factory</code>는 \"객체를 만드는 방법을 직접 코드로 정하는 생성자\"입니다. <code>AuthUser.fromJson(json)</code>은 서버에서 온 JSON 사전을 받아 필드를 하나씩 꺼내 AuthUser 객체를 만들어 돌려줍니다. 앱 안에서는 사전 대신 이 객체를 쓰니 오타를 컴파일러가 잡아줍니다."),
 }
 
+CHAPTERS = {
+    1: "앱이 켜져서 로그인이 끝날 때까지",
+    2: "처음 로그인한 보호자의 온보딩",
+    3: "홈 화면과 하단 탭, 기기",
+    4: "루틴 만들기와 보기",
+    5: "프로필과 계정",
+}
+
 STOPS = []
 
 STOPS.append(dict(
@@ -317,3 +325,14 @@ STOPS.append(dict(
     ],
     next_hint="1장 끝. 로그인 화면은 <code>login()</code>이 돌려준 <code>user.name</code>만 보고 온보딩 또는 홈으로 갑니다.",
 ))
+
+# 2~5장은 파일이 커서 따로 나눠 두었다. 각 파일은 CONCEPTS_CH(새 개념)와
+# STOPS_CH(정류장 목록, 각각 "chapter" 키 포함)를 정의한다.
+import importlib as _il
+for _mod in ("spec_ch2", "spec_ch3", "spec_ch4", "spec_ch5"):
+    try:
+        _m = _il.import_module(_mod)
+    except ModuleNotFoundError:
+        continue
+    CONCEPTS.update(_m.CONCEPTS_CH)
+    STOPS.extend(_m.STOPS_CH)
