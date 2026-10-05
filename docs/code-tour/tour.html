@@ -481,7 +481,7 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
   <header class="stop-head">
     <span class="eyebrow">정류장 6 / 14</span>
     <h2>로그인 화면과 _submit()</h2>
-    <p class="path"><code>lib/features/auth/presentation/login_screen.dart</code> · 180줄</p>
+    <p class="path"><code>lib/features/auth/presentation/login_screen.dart</code> · 166줄</p>
     <p class="arrive"><b>어떻게 왔나</b> <code>splash_screen.dart</code> 22줄 <code>context.go('/login')</code> → <code>router.dart</code> 51줄 <code>LoginScreen()</code>에서 왔습니다.</p>
   </header>
   <div class="rows"><div class="row"><pre class="code"><code><span class="ln">1</span><span class="tk">import</span> <span class="ts">&#x27;package:flutter/material.dart&#x27;</span>;
@@ -605,27 +605,14 @@ kbd { font-family: var(--f-mono); font-size: 12px; background: var(--surface); b
 <span class="ln">155</span>                    ),
 <span class="ln">156</span>                  ),
 <span class="ln">157</span>                ],
-<span class="ln">158</span>              ),</code></pre><div class="note"><span class="rng">134–158줄</span><p><code>Row</code>(가로로 나란히) 안에 "회원가입", "아이디/비밀번호 찾기" 글자 버튼. <code>onPressed: () {}</code>는 아무것도 안 하는 빈 함수라 지금은 눌러도 반응이 없습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">159</span>              <span class="tc">// 원래 Figma 목업이던 소셜 로그인 화면은 지워지지 않았다 —</span>
-<span class="ln">160</span>              <span class="tc">// 이 링크로 그 디자인을 그대로 볼 수 있게 남겨뒀다(자세한</span>
-<span class="ln">161</span>              <span class="tc">// 이유는 이 파일 위쪽 문서 주석 참고). 실제 로그인 수단은</span>
-<span class="ln">162</span>              <span class="tc">// 여전히 이메일뿐이다.</span>
-<span class="ln">163</span>              <span class="tt">TextButton</span>(
-<span class="ln">164</span>                onPressed: () =&gt; context.push(<span class="ts">&#x27;/login/social&#x27;</span>),
-<span class="ln">165</span>                child: <span class="tk">const</span> <span class="tt">Text</span>(
-<span class="ln">166</span>                  <span class="ts">&#x27;다른 방법으로 로그인&#x27;</span>,
-<span class="ln">167</span>                  style: <span class="tt">TextStyle</span>(
-<span class="ln">168</span>                    color: <span class="tt">Color</span>(<span class="tn">0xFFA5A5A5</span>),
-<span class="ln">169</span>                    decoration: <span class="tt">TextDecoration</span>.underline,
-<span class="ln">170</span>                  ),
-<span class="ln">171</span>                ),
-<span class="ln">172</span>              ),</code></pre><div class="note"><span class="rng">159–172줄</span><p>"다른 방법으로 로그인"을 누르면 <code>context.push('/login/social')</code>로 소셜 로그인 디자인 화면을 위에 쌓습니다. <code>go</code>는 화면을 갈아치우고, <code>push</code>는 위에 쌓아서 뒤로가기가 가능합니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">173</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">1</span>),
-<span class="ln">174</span>            ],
-<span class="ln">175</span>          ),
-<span class="ln">176</span>        ),
-<span class="ln">177</span>      ),
-<span class="ln">178</span>    );
-<span class="ln">179</span>  }
-<span class="ln">180</span>}</code></pre><div class="note"><span class="rng">173–180줄</span><p>아래쪽 빈칸(flex 1)과 괄호 닫기들.</p></div></div></div>
+<span class="ln">158</span>              ),</code></pre><div class="note"><span class="rng">134–158줄</span><p><code>Row</code>(가로로 나란히) 안에 "회원가입", "아이디/비밀번호 찾기" 글자 버튼. <code>onPressed: () {}</code>는 아무것도 안 하는 빈 함수라 지금은 눌러도 반응이 없습니다.</p></div></div><div class="row"><pre class="code"><code><span class="ln">159</span>              <span class="tk">const</span> <span class="tt">Spacer</span>(flex: <span class="tn">1</span>),
+<span class="ln">160</span>            ],
+<span class="ln">161</span>          ),
+<span class="ln">162</span>        ),
+<span class="ln">163</span>      ),
+<span class="ln">164</span>    );
+<span class="ln">165</span>  }
+<span class="ln">166</span>}</code></pre><div class="note"><span class="rng">159–166줄</span><p>아래쪽 빈칸(flex 1)과 괄호 닫기들.</p></div></div></div>
   <footer class="stop-foot">
     <p class="next-hint"><b>다음으로</b> 45줄 <code>authRepositoryProvider</code>를 Ctrl+클릭합니다.</p>
     <div class="pager"><button type="button" class="btn ghost" data-go="5">← 이전 정류장</button><button type="button" class="btn" data-go="7">다음 정류장: auth_providers.dart →</button></div>

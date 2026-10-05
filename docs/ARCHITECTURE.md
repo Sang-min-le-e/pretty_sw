@@ -173,7 +173,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 |---|---|---|
 | `/splash` | `SplashScreen` | `splash/presentation/splash_screen.dart` |
 | `/login` | `LoginScreen` | `auth/presentation/login_screen.dart` |
-| `/login/social` | `LoginSocialScreen` (Figma 목업, 실사용 X) | `auth/presentation/login_social_screen.dart` |
+| `/login/social` | `LoginSocialScreen` (Figma 목업, 실사용 X — 로그인 화면의 진입 링크는 제거됨, 라우트만 남음) | `auth/presentation/login_social_screen.dart` |
 | `/login/social/basic-info` | `LoginSocialBasicInfoScreen` | `auth/presentation/login_social_basic_info_screen.dart` |
 | `/onboarding/guardian-info` | `GuardianInfoScreen` | `onboarding/presentation/guardian_info_screen.dart` |
 | `/onboarding/child-info` | `ChildInfoScreen` | `onboarding/presentation/child_info_screen.dart` |
