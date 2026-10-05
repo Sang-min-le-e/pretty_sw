@@ -12,6 +12,12 @@ abstract class UserRepository {
 
   /// 온보딩 1차("보호자 성명")가 이 API를 그대로 쓴다(`docs/API.md` 5장).
   Future<AuthUser> updateMe({required String name});
+
+  /// `docs/API.md` 5장 `DELETE /users/me` — 회원 탈퇴. 본문 없이 `204`가 온다.
+  /// 서버가 계정의 `access_uuid`를 무효화하고 자녀·기기·루틴·양식을 한 번에
+  /// soft delete한다. 기기 쪽 로컬 데이터 정리는 이 저장소의 일이 아니라
+  /// `AccountActions.withdraw`가 맡는다.
+  Future<void> deleteUser();
 }
 
 class ApiUserRepository implements UserRepository {
@@ -34,6 +40,15 @@ class ApiUserRepository implements UserRepository {
     try {
       final response = await _apiClient.dio.patch('/users/me', data: {'name': name});
       return AuthUser.fromJson(response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteUser() async {
+    try {
+      await _apiClient.dio.delete('/users/me');
     } on DioException catch (e) {
       throwAsApiException(e);
     }

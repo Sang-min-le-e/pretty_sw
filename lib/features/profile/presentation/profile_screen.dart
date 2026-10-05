@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
+import '../../../core/network/api_exception.dart';
+import '../../auth/data/account_actions.dart';
 import '../../auth/data/auth_providers.dart';
 import '../data/avatar_providers.dart';
 import 'widgets/settings_card.dart';
@@ -165,11 +167,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  // 탈퇴하기는 아직 서버에 `DELETE /users/me`가 없어서(ERD.md `확정 필요
-  // 항목` — cascade 삭제 정책 미정) 계정과 데이터를 실제로 지우지는
-  // 못한다. 그때까지는 최소한 로그아웃과 같은 효과(`access_uuid` 무효화)만
-  // 내고 로그인 화면으로 보낸다 — 삭제 엔드포인트가 생기면 이 자리를
-  // `DELETE /users/me` 호출로 바꾼다.
+  // 탈퇴하기: 서버에 `DELETE /users/me`를 보내 계정과 딸린 데이터를 지우고,
+  // 성공하면 이 기기에 남은 데이터(Hive, 프로필 사진, 캐시)도 지운 뒤
+  // 로그인 화면으로 보낸다(`AccountActions.withdraw`). 서버 호출이 실패하면
+  // 아무것도 지우지 않고 오류 문구만 보여준다.
   Future<void> _confirmWithdraw(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -185,9 +186,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
-    if (confirmed == true) {
-      await ref.read(authRepositoryProvider).logout();
-      if (context.mounted) context.go('/login');
+    if (confirmed != true) return;
+    try {
+      await ref.read(accountActionsProvider).withdraw();
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
     }
+    if (context.mounted) context.go('/login');
   }
 }

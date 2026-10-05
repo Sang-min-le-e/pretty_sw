@@ -34,7 +34,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 | 무엇 | 결과물 |
 |---|---|
 | 프론트엔드 전체 구조 분석 | `docs/ARCHITECTURE.md` (글), `docs/code-map.html` (그림) |
-| 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 54개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
+| 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 55개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
 | 서버 연결 상태 점검 | 로그인·내 정보·자녀 등록만 서버, 루틴·기기·템플릿·프로필 사진은 Hive(로컬) |
 | 백엔드 pull 내용 정리 | 아래 3장 |
 | 작업 방식 결정 | KHU AI Developer Blueprint 방식 + `feature` 브랜치 → PR → 본인이 merge (`docs/GIT_WORKFLOW.md`) |
@@ -43,7 +43,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 
 ## 3. 백엔드에서 바뀐 것 (pull: `229a924` → `5cdde8d`)
 
-- **회원 탈퇴 `DELETE /users/me` 구현됨.** 자녀, 기기, 루틴, 템플릿까지 같이 soft delete한다. → 앱의 "탈퇴하기"는 아직 로그아웃만 하므로 **연결할 차례**.
+- **회원 탈퇴 `DELETE /users/me` 구현됨.** 자녀, 기기, 루틴, 템플릿까지 같이 soft delete한다. → 앱의 "탈퇴하기"에 연결함(`AccountActions.withdraw`, 2026-10 마이그레이션 1단계).
 - **캐릭터 API 2개 구현됨.** 다만 도감 데이터가 비어 있어서 항상 빈 목록이 온다. → 화면은 아직 만들 필요 없음.
 - **버그 수정 다수.** 400/500 구분, 루틴 할 일 순서, 동시 요청 처리, 생년월일 KST 판정.
 - **응답 변경.** 자녀 응답에서 `createdAt`이 빠졌다(앱 영향 없음). `GET /devices/:id` 응답에 `childId`가 추가됐다.
@@ -59,7 +59,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 1. **이 `feature` 브랜치를 PR로 올려 merge하기.** 버튼 크기 수정과 이 문서들이 들어 있다. GIT_WORKFLOW의 흐름을 처음 연습하기에 좋다.
 2. **코드 따라 읽기 1~5장 읽기.** 막히는 줄은 "login_screen 46줄"처럼 파일과 줄 번호로 질문한다.
 3. **테스트 + CI 추가.** `test/routine_recurrence_test.dart`(순수 함수라 쉬움)와 `.github/workflows/ci.yml`(PR마다 `flutter analyze` + `flutter test`).
-4. **탈퇴 버튼을 `DELETE /users/me`에 연결.** `profile_screen.dart`, `user_settings_screen.dart`.
+4. ~~탈퇴 버튼을 `DELETE /users/me`에 연결~~ — 완료. 다음은 `docs/frontend_migration_plan.md` 2단계(루틴·템플릿 API 연동).
 5. **코드 따라 읽기에 빠진 화면 추가.** 기기 추가·상세·통계·와이파이 설정, 소셜 로그인 목업, 워치 연결은 아직 없다.
 
 ## 6. 알아둘 것
