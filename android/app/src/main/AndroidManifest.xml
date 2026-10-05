@@ -1,4 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 서버(HTTP) 통신. debug/profile 매니페스트에는 이미 있지만 release 빌드에는
+         없어서 여기에도 둔다. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- 기기 연결(BLE). 안드로이드 12(API 31) 이상은 SCAN/CONNECT 권한을 쓰고,
+         11 이하는 예전 BLUETOOTH 권한 + 위치 권한이 있어야 스캔이 된다.
+         neverForLocation: 스캔 결과로 위치를 추정하지 않겠다는 선언(위치 권한 불필요). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
+    <!-- BLE가 없는 기기에서도 설치는 되게 한다(required=false). -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
+
     <application
         android:label="routine_app"
         android:name="${applicationName}"

@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- 기기(워치)와 BLE로 연결할 때 iOS가 사용자에게 보여주는 권한 안내 문구. 이 키가
+	     없으면 블루투스를 쓰는 순간 앱이 종료된다. -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>자녀의 기기를 찾아 연결하기 위해 블루투스를 사용합니다.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>자녀의 기기를 찾아 연결하기 위해 블루투스를 사용합니다.</string>
+	<!-- iOS 14+: 같은 와이파이 안의 PC(개발 중 백엔드)나 기기에 접속하려면 로컬 네트워크
+	     권한이 필요하다. 이 문구가 권한 팝업에 보인다. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>같은 와이파이의 서버와 기기에 연결하기 위해 로컬 네트워크를 사용합니다.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
