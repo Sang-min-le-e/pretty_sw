@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/widgets/bottom_nav_bar.dart';
 import '../../../app/widgets/progress_ring.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../../children/data/child_providers.dart';
 import '../../routine/data/routine_providers.dart';
 import '../../routine/domain/routine.dart';
 
@@ -20,9 +21,11 @@ import '../../routine/domain/routine.dart';
 /// 화살표를 누르면 그 자리에서 바로 다시 그려진다.
 ///
 /// Figma 목업의 "667/1000"(한달) 같은 숫자는 만보기 등 이 앱에 없는
-/// 센서 데이터로 보여서, 대신 세 기간 모두 "완료된 참여자 수 / 전체
-/// 참여자 수"로 통일했다 — 실제 Hive에 저장된 루틴 데이터로 계산할 수
-/// 있는 값이라 이 쪽이 더 정직하다.
+/// 센서 데이터로 보여서, 대신 세 기간 모두 "완료한 할 일 수 / 전체 할 일
+/// 수"로 통일했다 — 서버에서 받은 루틴(`calendar`)의 할 일 상태로 계산할 수
+/// 있는 값이라 이 쪽이 더 정직하다. 보여주는 데이터는 지금 선택한 자녀의
+/// 것이다(기기가 아직 자녀와 연결돼 있지 않아서 [deviceOwnerName]은 제목에만
+/// 쓴다).
 class DeviceStatsScreen extends ConsumerStatefulWidget {
   const DeviceStatsScreen({super.key, required this.deviceOwnerName});
 
@@ -59,25 +62,28 @@ class _DeviceStatsScreenState extends ConsumerState<DeviceStatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allRoutines = ref.watch(routineListProvider).value ?? const [];
     final today = DateTime.now();
-    final periodRoutines = _routinesForPeriod(allRoutines, today, _period)
-      // 이 기기 주인이 참여하는 루틴만("공통" 루틴 포함) 보여준다.
-      .where(
-        (r) => r.participants.any((p) => p.name == widget.deviceOwnerName),
-      )
-      .toList()
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final range = _rangeFor(today, _period);
+    // 지금 선택한 자녀의 이 기간 루틴을 서버에서 받는다(자녀가 아직 없으면 빈 목록).
+    final child = ref.watch(currentChildProvider);
+    final periodRoutines = child == null
+        ? <Routine>[]
+        : (ref
+                  .watch(
+                    routineCalendarProvider((
+                      childId: child.childId,
+                      from: range.from,
+                      to: range.to,
+                    )),
+                  )
+                  .value ??
+              const <Routine>[])
+              .toList()
+          ..sort((a, b) => a.startDateTime.compareTo(b.startDateTime));
 
-    final totalParticipants = periodRoutines.fold<int>(
-      0,
-      (sum, r) => sum + r.participants.length,
-    );
-    final completedParticipants = periodRoutines.fold<int>(
-      0,
-      (sum, r) => sum + r.participants.where((p) => p.completed).length,
-    );
-    final ratio = totalParticipants == 0 ? 0.0 : completedParticipants / totalParticipants;
+    final totalSteps = periodRoutines.fold<int>(0, (sum, r) => sum + r.totalCount);
+    final completedSteps = periodRoutines.fold<int>(0, (sum, r) => sum + r.doneCount);
+    final ratio = totalSteps == 0 ? 0.0 : completedSteps / totalSteps;
     final percent = (ratio * 100).round();
 
     return Scaffold(
@@ -136,7 +142,7 @@ class _DeviceStatsScreenState extends ConsumerState<DeviceStatsScreen> {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              '$completedParticipants/$totalParticipants',
+                              '$completedSteps/$totalSteps',
                               style: const TextStyle(
                                 color: Color(0xFF868686),
                                 fontSize: 28,
@@ -190,31 +196,19 @@ class _DeviceStatsScreenState extends ConsumerState<DeviceStatsScreen> {
     );
   }
 
-  static List<Routine> _routinesForPeriod(
-    List<Routine> all,
-    DateTime today,
-    _Period period,
-  ) {
+  /// [period]에 해당하는 조회 기간(둘 다 날짜만 의미). 서버의 `calendar`가 한 번에
+  /// 한 달 안쪽의 범위를 주므로 하루·일주일(일요일 시작)·이번 달로 자른다.
+  static ({DateTime from, DateTime to}) _rangeFor(DateTime today, _Period period) {
+    final day = DateTime(today.year, today.month, today.day);
     switch (period) {
       case _Period.day:
-        return all.where(
-          (r) =>
-              r.dateTime.year == today.year &&
-              r.dateTime.month == today.month &&
-              r.dateTime.day == today.day,
-        ).toList();
+        return (from: day, to: day);
       case _Period.week:
         // 오늘이 속한 주(일요일 시작)의 시작/끝 날짜를 구한다.
-        final startOfWeek = today.subtract(Duration(days: today.weekday % 7));
-        final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final end = start.add(const Duration(days: 7));
-        return all
-            .where((r) => !r.dateTime.isBefore(start) && r.dateTime.isBefore(end))
-            .toList();
+        final start = day.subtract(Duration(days: day.weekday % 7));
+        return (from: start, to: start.add(const Duration(days: 6)));
       case _Period.month:
-        return all
-            .where((r) => r.dateTime.year == today.year && r.dateTime.month == today.month)
-            .toList();
+        return (from: DateTime(day.year, day.month, 1), to: DateTime(day.year, day.month + 1, 0));
     }
   }
 }
@@ -305,7 +299,7 @@ class _PeriodArrow extends StatelessWidget {
   }
 }
 
-/// 통계 화면의 루틴 한 줄. 참여자 전원이 완료했으면 파란 배경(흰 글씨),
+/// 통계 화면의 루틴 한 줄. 할 일을 전부 끝냈으면 파란 배경(흰 글씨),
 /// 아니면 흰 배경(진한 글씨)으로 완료 여부를 색으로 바로 알아볼 수 있게
 /// 한다 — 목록 화면의 `RoutineCard`와 달리 이 화면만의 색 규칙이라 별도
 /// 위젯으로 뒀다.
@@ -316,18 +310,14 @@ class _StatRoutineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allCompleted =
-        routine.participants.isNotEmpty && routine.participants.every((p) => p.completed);
-    final time = TimeOfDay.fromDateTime(routine.dateTime);
-    final timeLabel =
-        '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
+    final allCompleted = routine.totalCount > 0 && routine.doneCount == routine.totalCount;
+    final timeLabel = routine.timeLabel;
 
     final titleColor = allCompleted ? Colors.white : kDeviceOverviewLabelColor;
     final captionColor = allCompleted ? Colors.white.withValues(alpha: 0.8) : kDeviceOverviewCaptionColor;
 
     return GestureDetector(
-      onTap: () => context.push('/routine/detail/${routine.id}'),
+      onTap: () => context.push('/routine/detail/${routine.id}', extra: routine),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(23, 14, 15, 14),
@@ -345,22 +335,21 @@ class _StatRoutineRow extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    '$timeLabel ${routine.title}',
+                    '${timeLabel.isEmpty ? '' : '$timeLabel '}${routine.title}',
                     style: TextStyle(color: titleColor, fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '・${routine.tag}',
+                    '・${routine.date.month}/${routine.date.day}',
                     style: TextStyle(color: captionColor, fontSize: 13),
                   ),
                 ],
               ),
             ),
-            if (routine.steps.isNotEmpty)
-              Text(
-                '${routine.participants.where((p) => p.completed).length}/${routine.participants.length}',
-                style: TextStyle(color: captionColor, fontSize: 12),
-              ),
+            Text(
+              '${routine.doneCount}/${routine.totalCount}',
+              style: TextStyle(color: captionColor, fontSize: 12),
+            ),
           ],
         ),
       ),

@@ -35,7 +35,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 |---|---|
 | 프론트엔드 전체 구조 분석 | `docs/ARCHITECTURE.md` (글), `docs/code-map.html` (그림) |
 | 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 56개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
-| 서버 연결 상태 점검 | 로그인·내 정보·자녀 등록만 서버, 루틴·기기·템플릿·프로필 사진은 Hive(로컬) |
+| 서버 연결 상태 점검 | 로그인·내 정보·자녀·**루틴(2-b)** 은 서버, 기기·템플릿·프로필 사진은 Hive(로컬) |
 | 백엔드 pull 내용 정리 | 아래 3장 |
 | 작업 방식 결정 | KHU AI Developer Blueprint 방식 + `feature` 브랜치 → PR → 본인이 merge (`docs/GIT_WORKFLOW.md`) |
 | GitHub 설정 | `main` 보호: PR 필수, 승인 0명, 관리자 우회 금지 |
@@ -58,7 +58,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 
 1. **이 `feature` 브랜치를 PR로 올려 merge하기.** 버튼 크기 수정과 이 문서들이 들어 있다. GIT_WORKFLOW의 흐름을 처음 연습하기에 좋다.
 2. **코드 따라 읽기 1~5장 읽기.** 막히는 줄은 "login_screen 46줄"처럼 파일과 줄 번호로 질문한다.
-3. **테스트 + CI 추가.** `test/routine_recurrence_test.dart`(순수 함수라 쉬움)와 `.github/workflows/ci.yml`(PR마다 `flutter analyze` + `flutter test`).
+3. **테스트 + CI 추가.** `test/new_routine_test.dart`(`toJson`, 순수 함수라 쉬움)와 `.github/workflows/ci.yml`(PR마다 `flutter analyze` + `flutter test`).
 4. ~~탈퇴 버튼을 `DELETE /users/me`에 연결~~ — 완료. 다음은 `docs/frontend_migration_plan.md` 2단계(루틴·템플릿 API 연동).
 5. **코드 따라 읽기에 빠진 화면 추가.** 기기 추가·상세·통계·와이파이 설정, 소셜 로그인 목업, 워치 연결은 아직 없다.
 

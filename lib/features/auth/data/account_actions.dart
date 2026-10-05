@@ -46,7 +46,7 @@ class AccountActions {
     _ref.invalidate(currentUserProvider);
     _ref.invalidate(childListProvider);
     _ref.invalidate(selectedChildIdProvider);
-    _ref.invalidate(routineListProvider);
+    _ref.invalidate(routineCalendarProvider);
     _ref.invalidate(routineTemplateListProvider);
     _ref.invalidate(deviceListProvider);
     _ref.invalidate(selectedDeviceIndexProvider);

@@ -20,6 +20,7 @@ import '../features/profile/presentation/login_history_screen.dart';
 import '../features/profile/presentation/profile_edit_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/profile/presentation/user_settings_screen.dart';
+import '../features/routine/domain/routine.dart';
 import '../features/routine/domain/routine_template.dart';
 import '../features/routine/presentation/add_routine_screen.dart';
 import '../features/routine/presentation/routine_detail_screen.dart';
@@ -110,19 +111,13 @@ final appRouter = GoRouter(
             child: const TodayRoutinesScreen(),
           ),
         ),
-        // => '/routine/detail/:id', 루틴 카드의 화살표(›)를 누르면
-        // 도착하는 완료 현황 상세 화면.
+        // => '/routine/detail/:id', 루틴 카드를 누르면 도착하는 완료 현황 상세
+        // 화면. 목록에서 이미 받은 루틴을 state.extra로 넘겨받는다(extra가 없으면
+        // — 예: 주소로 바로 들어옴 — 화면이 "찾을 수 없어요"를 보여준다).
         GoRoute(
           path: 'detail/:id',
           builder: (context, state) =>
-              RoutineDetailScreen(routineId: state.pathParameters['id']!),
-        ),
-        // => '/routine/edit/:id', 상세 화면 우측 상단 설정 톱니바퀴를
-        // 누르면 도착하는 수정 폼(Figma "7"/"7-1").
-        GoRoute(
-          path: 'edit/:id',
-          builder: (context, state) =>
-              RoutineEditScreen(routineId: state.pathParameters['id']!),
+              RoutineDetailScreen(routine: state.extra as Routine?),
         ),
         // => '/routine/add', "+" 버튼을 누르면 도착하는 "단일 루틴 /
         // 복합 루틴" 선택 화면(Figma "4. 루틴 추가 선택 화면").

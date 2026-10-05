@@ -566,7 +566,7 @@ class _ConnectedDeviceRow extends StatelessWidget {
 }
 
 /// "현재 루틴" 카드: 오늘 등록된 루틴 중 가장 이른 시간의 루틴 하나를
-/// 요약해서 보여준다. Hive에 저장된 실제 루틴 데이터
+/// 요약해서 보여준다. 서버에서 받은 현재 자녀의 루틴
 /// ([routinesForDateProvider])를 구독하는 `ConsumerWidget`이라, 루틴 탭에서
 /// "+"로 루틴을 새로 추가하면 이 카드도 자동으로 갱신된다.
 class CurrentRoutineCard extends ConsumerWidget {
@@ -622,7 +622,7 @@ class CurrentRoutineCard extends ConsumerWidget {
             Row(
               children: [
                 Text(
-                  '${_timeLabel(routine.dateTime)} ${routine.title}',
+                  '${routine.timeLabel.isEmpty ? '' : '${routine.timeLabel} '}${routine.title}',
                   style: const TextStyle(
                     color: kDeviceOverviewLabelColor,
                     fontSize: 15,
@@ -631,7 +631,7 @@ class CurrentRoutineCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '・${routine.tag}',
+                  '・완료 ${routine.doneCount}/${routine.totalCount}',
                   style: const TextStyle(
                     color: kDeviceOverviewCaptionColor,
                     fontSize: 13,
@@ -643,11 +643,5 @@ class CurrentRoutineCard extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  static String _timeLabel(DateTime dateTime) {
-    final time = TimeOfDay.fromDateTime(dateTime);
-    return '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
   }
 }

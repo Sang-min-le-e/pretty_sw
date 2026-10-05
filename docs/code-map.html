@@ -252,9 +252,9 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 
       <div class="feat">routine</div>
       <div class="cell">달력 · 오늘 할 일 · 상세 · 추가/수정 · 템플릿<span class="sub">홈 "현재 루틴", 기기 통계도 구독</span></div>
-      <div class="cell"><code>routineListProvider</code><code>routinesForDateProvider(날짜)</code><code>RoutineActions</code></div>
-      <div class="cell"><code>LocalRoutineRepository</code><code>LocalRoutineTemplateRepository</code></div>
-      <div class="cell last"><span class="chip c-local">routines</span><span class="chip c-local">routine_templates</span></div>
+      <div class="cell"><code>routineCalendarProvider</code><code>routinesForDateProvider(날짜)</code><code>RoutineActions</code></div>
+      <div class="cell"><code>ApiRoutineRepository</code><code>LocalRoutineTemplateRepository</code></div>
+      <div class="cell last"><span class="chip c-server">/calendar · /big-routines</span><span class="chip c-local">routine_templates</span></div>
 
       <div class="feat">devices</div>
       <div class="cell">홈 캐러셀 · 기기 탭 · 연결된 기기 · 기기 추가</div>
@@ -305,11 +305,11 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <text class="t2" x="340" y="93" text-anchor="middle">routine_providers.dart</text>
 
       <rect class="box" x="500" y="58" width="180" height="44" rx="8"/>
-      <text class="t1" x="590" y="77" text-anchor="middle">LocalRoutineRepository</text>
+      <text class="t1" x="590" y="77" text-anchor="middle">ApiRoutineRepository</text>
       <text class="t2" x="590" y="93" text-anchor="middle">routine_repository.dart</text>
 
       <rect class="box-local" x="760" y="58" width="180" height="44" rx="8"/>
-      <text class="t1" x="850" y="77" text-anchor="middle">Hive 'routines'</text>
+      <text class="t1" x="850" y="77" text-anchor="middle">서버 big-routines</text>
       <text class="t2" x="850" y="93" text-anchor="middle">id → Routine.toMap()</text>
 
       <line class="call" x1="180" y1="80" x2="258" y2="80" marker-end="url(#ah)"/>
@@ -393,7 +393,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     <div class="tab">
       <div class="tab-head"><h3>루틴</h3><span class="idx">탭 1 · /routine</span></div>
       <ul class="routes">
-        <li><span class="path">/routine</span><span class="name">달력 + 날짜별 루틴</span><span class="chip c-local">Hive</span></li>
+        <li><span class="path">/routine</span><span class="name">달력 + 날짜별 루틴</span><span class="chip c-server">서버</span></li>
         <li class="child"><span class="path">today</span><span class="name">오늘 할 일 (전환 효과 없음)</span><span class="chip c-local">Hive</span></li>
         <li class="child"><span class="path">detail/:id</span><span class="name">완료 현황</span><span class="chip c-local">Hive</span></li>
         <li class="child"><span class="path">edit/:id</span><span class="name">수정 폼</span><span class="chip c-local">Hive</span></li>
@@ -537,7 +537,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <li><span class="chip c-static">위치</span><h3><code>apiClientProvider</code>가 auth 안에 있다</h3><p>그래서 children이 auth를 import한다. 서버 연동 기능이 늘어나면 <code>core/network/</code>로 옮길 것.</p></li>
       <li><span class="chip c-static">미사용</span><h3>쓰지 않는 패키지·API·화면</h3><p><code>flutter_tts</code>, <code>flutter_local_notifications</code> 패키지, <code>signup</code>·<code>getChildren</code> 호출, <code>/watch-connection</code> 화면이 아직 아무 데서도 쓰이지 않는다.</p></li>
       <li><span class="chip c-static">기능</span><h3>삭제가 없다</h3><p>루틴·기기·템플릿 저장소에 <code>delete</code>가 없다. 수정은 같은 id로 다시 <code>put</code>해서 덮어쓴다.</p></li>
-      <li><span class="chip c-static">테스트</span><h3><code>test/</code> 폴더가 없다</h3><p>순수 함수만 있는 <code>routine_recurrence.dart</code>(반복 날짜 계산)가 첫 단위 테스트 대상으로 가장 쉽다.</p></li>
+      <li><span class="chip c-static">테스트</span><h3><code>test/</code> 폴더가 없다</h3><p>순수 함수가 많은 <code>new_routine.dart</code>(<code>toJson</code>)와 <code>routine.dart</code>(<code>fromCalendarJson</code>)가 첫 단위 테스트 대상으로 가장 쉽다.</p></li>
     </ul>
   </div>
 </section>

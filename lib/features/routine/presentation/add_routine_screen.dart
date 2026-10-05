@@ -3,67 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../data/routine_providers.dart';
 import '../data/routine_template_providers.dart';
-import '../domain/routine.dart';
-import '../domain/routine_recurrence.dart';
+import '../domain/new_routine.dart';
 import '../domain/routine_template.dart';
-
-/// [AddRoutineScreen]을 "id로 찾은 기존 루틴을 수정 모드로 열기" 용도로
-/// 감싸는 얇은 래퍼. 라우트 빌더는 riverpod의 `ref`를 바로 못 받기 때문에,
-/// `routineByIdProvider`로 루틴을 찾아오는 이 [ConsumerWidget] 한 겹이
-/// 필요하다 — id가 잘못됐거나 루틴이 지워졌으면 안내 문구만 보여준다.
-class RoutineEditScreen extends ConsumerWidget {
-  const RoutineEditScreen({super.key, required this.routineId});
-
-  final String routineId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final routine = ref.watch(routineByIdProvider(routineId));
-    if (routine == null) {
-      return const Scaffold(body: Center(child: Text('루틴을 찾을 수 없어요')));
-    }
-    return AddRoutineScreen(compound: routine.steps.isNotEmpty, editing: routine);
-  }
-}
 
 /// Figma: 예소 / "5. 단일 루틴 추가하기" · "6. 복합 루틴 추가하기" (node-id
 /// 392:2567 / 392:2977, "앱 초안 3" 프레임 안). "4. 루틴 추가 선택
 /// 화면"에서 "단일 루틴 추가하기" 또는 "복합 루틴 추가하기"를 누르면
 /// 도착한다 — 두 화면은 [compound] 플래그 하나만 다르고 나머지 폼(이름/
-/// 시간/대상/일반·기간·반복·다중 탭)은 완전히 같아서 화면 하나로 합쳤다.
-/// "복합 루틴"일 때만 "행동 추가"(하위 할 일 목록, [Routine.steps])와
-/// "템플릿에 저장하기" 체크박스가 추가로 보인다.
+/// 시간/일반·기간·반복·다중 탭)은 완전히 같아서 화면 하나로 합쳤다.
+/// "복합 루틴"일 때만 "행동 추가"(하위 할 일 목록)와 "템플릿에 저장하기"
+/// 체크박스가 추가로 보인다.
 ///
-/// "일반/기간/반복/다중" 네 탭은 전부 실제로 동작한다:
-/// - 일반: 날짜 하나를 골라 그 날 한 번만 등록
-/// - 기간: 시작~끝 날짜 사이 매일 등록
-/// - 반복: 매주(요일 선택)/매월(며칠)/매년(몇 월 며칠)/주기(N일·주·개월마다)
-/// - 다중: 달력에서 원하는 날짜를 여러 개 콕콕 찍어서 등록
+/// 만든 루틴은 지금 보는 자녀(`currentChildProvider`)의 것으로 서버에
+/// 저장된다(`POST /children/:childId/big-routines`). 네 탭은 서버의 반복
+/// 모드(`repeatType`)에 이렇게 대응한다:
+/// - 일반: 날짜 하나 → `RANGE`(시작일 = 종료일)
+/// - 기간: 시작~끝 날짜 사이 매일 → `RANGE`
+/// - 반복: 시작~끝 날짜 사이 선택한 요일마다 → `WEEKLY`(종료일 필수)
+/// - 다중: 달력에서 찍은 날짜 여러 개 → `DATES`(최대 12개)
 ///
-/// 반복 규칙 자체를 저장하지 않고, "완료"를 누르는 시점에
-/// [RoutineRecurrence]로 해당하는 모든 날짜를 미리 계산해서 그 개수만큼
-/// [Routine]을 각각 저장한다 — 자세한 이유는 그 파일의 문서 주석 참고.
+/// 날짜를 펼쳐서 날짜별 루틴을 만드는 일은 서버가 한다. 서버는 단일/복합을
+/// 구분하지 않고 하위 할 일 개수로만 나뉘므로, 단일 루틴도 제목과 같은 이름의
+/// 할 일 하나를 보낸다(완료 여부가 할 일에 붙기 때문).
 ///
-/// Figma: 예소 / "7. 단일 루틴 수정하기" · "7-1 복합 루틴 수정하기"
-/// (node-id 392:2772 / 392:3191)도 이 화면을 그대로 재사용한다 — [editing]에
-/// 기존 루틴을 넘기면 값들을 미리 채우고, 제목이 "수정하기"로 바뀌고,
-/// "완료"를 누르면 새로 만들지 않고 그 루틴을 덮어쓴다(같은 id로 저장하면
-/// Hive가 알아서 덮어쓴다). 수정할 땐 "기간/반복/다중"으로 바꿔서 여러
-/// 개를 새로 만들면 원본 하나는 그대로 남아 데이터가 꼬이므로, 탭 자체를
-/// 숨기고 "일반"(날짜 하나)만 고를 수 있게 한다.
+/// (루틴 수정은 서버 규칙 — 같은 반복 전체/해당 날짜만, 지난 날짜는 불변 —
+/// 에 맞춰 다시 만들 때까지 이 화면에서 뺐다.)
 class AddRoutineScreen extends ConsumerStatefulWidget {
-  const AddRoutineScreen({super.key, this.compound = false, this.template, this.editing});
+  const AddRoutineScreen({super.key, this.compound = false, this.template});
 
   final bool compound;
 
   /// "템플릿 사용" 화면에서 골라 들어온 경우, 그 템플릿의 이름/하위 할 일
   /// 목록을 폼에 미리 채워 넣는다.
   final RoutineTemplate? template;
-
-  /// 기존 루틴을 수정하러 들어온 경우 그 루틴. null이면 "추가" 모드다.
-  final Routine? editing;
 
   @override
   ConsumerState<AddRoutineScreen> createState() => _AddRoutineScreenState();
@@ -74,27 +49,20 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   static const _placeholderColor = Color(0xFFA3A3A3);
   static const _brandBlue = Color(0xFF4ABEFF);
 
-  static const _allMembers = ['지예', '예담', '예소'];
   static const _tabs = ['일반', '기간', '반복', '다중'];
   static const _weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
-  static const _repeatUnits = ['매주', '매월', '매년', '주기'];
-  static const _intervalUnits = ['일', '주', '개월'];
+
+  /// [_weekdayLabels]와 같은 순서(0=일 … 6=토)인 서버의 요일 코드.
+  static const _weekdayCodes = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   late final _titleController = TextEditingController(
-    text: widget.editing?.title ?? widget.template?.title ?? '',
+    text: widget.template?.title ?? '',
   );
   final _stepInputController = TextEditingController();
-  late List<String> _steps = List.of(
-    widget.editing?.steps ?? widget.template?.steps ?? const [],
-  );
+  late List<String> _steps = List.of(widget.template?.steps ?? const []);
 
-  late TimeOfDay _startTime = widget.editing == null
-      ? const TimeOfDay(hour: 0, minute: 0)
-      : TimeOfDay.fromDateTime(widget.editing!.dateTime);
+  TimeOfDay _startTime = const TimeOfDay(hour: 0, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 0, minute: 0);
-  late final Set<String> _selectedMembers = widget.editing == null
-      ? {'지예'}
-      : widget.editing!.participants.map((p) => p.name).toSet();
   String _activeTab = '일반';
   bool _saving = false;
   bool _saveAsTemplate = false;
@@ -109,28 +77,19 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   // 다중
   final Set<DateTime> _multiDates = {};
 
-  // 반복
-  String _repeatUnit = '매주';
+  // 반복(매주): 서버의 WEEKLY는 시작일과 종료일이 모두 필요하다.
   final Set<int> _repeatWeekdays = {};
-  int _repeatDayOfMonth = 1;
-  int _repeatMonth = 1;
-  int _repeatDay = 1;
-  int _repeatIntervalValue = 1;
-  String _repeatIntervalUnit = '일';
   late DateTime _repeatStart;
-  DateTime? _repeatEnd;
+  late DateTime _repeatEnd;
 
   @override
   void initState() {
     super.initState();
-    final editingDate = widget.editing?.dateTime;
-    final today = editingDate ?? DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
-    _selectedDate = todayDate;
-    _repeatStart = todayDate;
-    _repeatDayOfMonth = todayDate.day;
-    _repeatMonth = todayDate.month;
-    _repeatDay = todayDate.day;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    _selectedDate = today;
+    _repeatStart = today;
+    _repeatEnd = today.add(const Duration(days: 28)); // 기본 4주
   }
 
   @override
@@ -155,16 +114,6 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     });
   }
 
-  void _toggleMember(String member) {
-    setState(() {
-      if (_selectedMembers.contains(member)) {
-        _selectedMembers.remove(member);
-      } else {
-        _selectedMembers.add(member);
-      }
-    });
-  }
-
   void _addStep() {
     final text = _stepInputController.text.trim();
     if (text.isEmpty) return;
@@ -180,125 +129,115 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     });
   }
 
-  /// [_activeTab]에 따라 이 루틴이 실제로 등록될 날짜 목록을 계산한다.
-  /// 비어 있으면(설정이 덜 됐으면) 저장할 수 없다는 뜻이다.
-  ///
-  /// 수정 모드([widget.editing] != null)에서는 탭 자체를 숨기고 항상
-  /// "일반"(날짜 하나)로만 계산한다 — 클래스 문서 주석 참고.
-  List<DateTime> _resolveOccurrenceDates() {
-    if (widget.editing != null) return [_selectedDate];
-    switch (_activeTab) {
-      case '일반':
-        return [_selectedDate];
-      case '기간':
-        if (_periodStart == null || _periodEnd == null) return [];
-        final dates = <DateTime>[];
-        var day = _periodStart!;
-        while (!day.isAfter(_periodEnd!)) {
-          dates.add(day);
-          day = day.add(const Duration(days: 1));
-        }
-        return dates;
-      case '다중':
-        return _multiDates.toList();
-      case '반복':
-        switch (_repeatUnit) {
-          case '매주':
-            return RoutineRecurrence.weekly(
-              start: _repeatStart,
-              weekdays: _repeatWeekdays,
-              end: _repeatEnd,
-            );
-          case '매월':
-            return RoutineRecurrence.monthly(
-              start: _repeatStart,
-              dayOfMonth: _repeatDayOfMonth,
-              end: _repeatEnd,
-            );
-          case '매년':
-            return RoutineRecurrence.yearly(
-              start: _repeatStart,
-              month: _repeatMonth,
-              day: _repeatDay,
-              end: _repeatEnd,
-            );
-          case '주기':
-            return RoutineRecurrence.interval(
-              start: _repeatStart,
-              everyN: _repeatIntervalValue,
-              unit: _repeatIntervalUnit,
-              end: _repeatEnd,
-            );
-        }
-        return [];
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// `TimeOfDay`를 서버 형식 `"07:30"`으로.
+  static String _hhmm(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  /// 폼 값을 서버 요청으로 바꾼다. 선택한 탭에서 아직 덜 정해진 값이 있으면
+  /// 이유를 스낵바로 알리고 `null`을 돌려준다.
+  NewRoutine? _toRequest(String title) {
+    // 단일 루틴(또는 할 일을 안 적은 복합 루틴)은 제목과 같은 할 일 하나를 보낸다.
+    final steps = _steps.isEmpty ? [title] : _steps;
+    NewRoutine build({
+      required RepeatType type,
+      DateTime? start,
+      DateTime? end,
+      List<String> days = const [],
+      List<DateTime> dates = const [],
+    }) {
+      return NewRoutine(
+        title: title,
+        startTime: _hhmm(_startTime),
+        endTime: _hhmm(_endTime),
+        repeatType: type,
+        startDate: start,
+        endDate: end,
+        repeatDays: days,
+        repeatDates: dates,
+        steps: steps,
+      );
     }
-    return [];
+
+    switch (_activeTab) {
+      case '기간':
+        if (_periodStart == null || _periodEnd == null) {
+          _showMessage('시작일과 종료일을 모두 골라 주세요');
+          return null;
+        }
+        return build(type: RepeatType.range, start: _periodStart, end: _periodEnd);
+      case '반복':
+        if (_repeatWeekdays.isEmpty) {
+          _showMessage('반복할 요일을 하나 이상 골라 주세요');
+          return null;
+        }
+        final days = (_repeatWeekdays.toList()..sort())
+            .map((i) => _weekdayCodes[i])
+            .toList();
+        return build(
+          type: RepeatType.weekly,
+          start: _repeatStart,
+          end: _repeatEnd,
+          days: days,
+        );
+      case '다중':
+        if (_multiDates.isEmpty) {
+          _showMessage('날짜를 하나 이상 골라 주세요');
+          return null;
+        }
+        return build(
+          type: RepeatType.dates,
+          dates: _multiDates.toList()..sort(),
+        );
+      default: // '일반': 하루짜리는 RANGE에 시작일과 종료일을 같게.
+        return build(type: RepeatType.range, start: _selectedDate, end: _selectedDate);
+    }
   }
 
   Future<void> _submit() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('루틴 이름을 입력해 주세요')),
-      );
+      _showMessage('루틴 이름을 입력해 주세요');
       return;
     }
-    if (_selectedMembers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('대상을 한 명 이상 선택해 주세요')),
-      );
+    // 서버도 검사하지만(ROUTINE_INVALID_TIME_RANGE) 미리 알려서 왕복을 줄인다.
+    final startMinutes = _startTime.hour * 60 + _startTime.minute;
+    final endMinutes = _endTime.hour * 60 + _endTime.minute;
+    if (endMinutes <= startMinutes) {
+      _showMessage('종료 시간은 시작 시간보다 뒤여야 해요');
       return;
     }
-    final dates = _resolveOccurrenceDates();
-    if (dates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('날짜를 설정해 주세요')),
-      );
-      return;
-    }
-
-    final allSelected = _selectedMembers.length == _allMembers.length;
-    final tag = allSelected ? '공통' : '${_selectedMembers.join(', ')}님의 기기';
-    final participantNames = allSelected ? _allMembers : _selectedMembers.toList();
-    final baseId = DateTime.now().microsecondsSinceEpoch;
-    // 수정 모드에서는 이미 완료 표시된 구성원의 완료 상태를 그대로 두고,
-    // 새로 추가된 구성원만 미완료로 시작한다.
-    final existingParticipants = {
-      for (final p in widget.editing?.participants ?? const <RoutineParticipant>[]) p.name: p,
-    };
+    final request = _toRequest(title);
+    if (request == null) return;
 
     setState(() => _saving = true);
-    final actions = ref.read(routineActionsProvider);
-    for (var i = 0; i < dates.length; i++) {
-      final date = dates[i];
-      await actions.addRoutine(
-        Routine(
-          id: widget.editing?.id ?? '$baseId-$i',
-          title: title,
-          dateTime: DateTime(date.year, date.month, date.day, _startTime.hour, _startTime.minute),
-          tag: tag,
-          steps: _steps,
-          participants: [
-            for (final name in participantNames)
-              RoutineParticipant(
-                name: name,
-                completed: existingParticipants[name]?.completed ?? false,
-              ),
-          ],
-        ),
-      );
-    }
+    try {
+      await ref.read(routineActionsProvider).createRoutine(request);
 
-    if (widget.compound && _saveAsTemplate) {
-      await ref.read(routineTemplateActionsProvider).addTemplate(
-        RoutineTemplate(id: '$baseId', title: title, steps: _steps),
-      );
-    }
+      // 템플릿은 아직 로컬(Hive)에 저장한다(서버 연동은 다음 단계).
+      if (widget.compound && _saveAsTemplate) {
+        await ref.read(routineTemplateActionsProvider).addTemplate(
+          RoutineTemplate(
+            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            title: title,
+            steps: _steps,
+          ),
+        );
+      }
 
-    if (!mounted) return;
-    // "완료" = 저장하고 달력 화면으로 돌아간다. 선택 화면(4)까지 스택에
-    // 두 겹 쌓여 있는 상태라 pop 대신 go로 곧장 '/routine'으로 보낸다.
-    context.go('/routine');
+      if (!mounted) return;
+      // "완료" = 저장하고 달력 화면으로 돌아간다. 선택 화면(4)까지 스택에
+      // 두 겹 쌓여 있는 상태라 pop 대신 go로 곧장 '/routine'으로 보낸다.
+      context.go('/routine');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showMessage(e.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -386,23 +325,6 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    const Text('대상 선택', style: TextStyle(color: _labelColor, fontSize: 15)),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        for (final member in _allMembers) ...[
-                          if (member != _allMembers.first) const SizedBox(width: 5),
-                          Expanded(
-                            child: _MemberChip(
-                              name: member,
-                              selected: _selectedMembers.contains(member),
-                              onTap: () => _toggleMember(member),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
                     if (widget.compound) ...[
                       const SizedBox(height: 22),
                       const Text('행동 추가', style: TextStyle(color: _labelColor, fontSize: 15)),
@@ -483,26 +405,22 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
                   child: Column(
                     children: [
-                      // 수정 모드에서는 탭을 숨기고 "일반"(날짜 하나)만
-                      // 고르게 한다 — 클래스 문서 주석 참고.
-                      if (widget.editing == null) ...[
-                        Row(
-                          children: [
-                            for (final tab in _tabs) ...[
-                              if (tab != _tabs.first) const SizedBox(width: 6),
-                              Expanded(
-                                child: _TabChip(
-                                  label: tab,
-                                  active: tab == _activeTab,
-                                  onTap: () => setState(() => _activeTab = tab),
-                                ),
+                      Row(
+                        children: [
+                          for (final tab in _tabs) ...[
+                            if (tab != _tabs.first) const SizedBox(width: 6),
+                            Expanded(
+                              child: _TabChip(
+                                label: tab,
+                                active: tab == _activeTab,
+                                onTap: () => setState(() => _activeTab = tab),
                               ),
-                            ],
+                            ),
                           ],
-                        ),
-                        const SizedBox(height: 18),
-                      ],
-                      switch (widget.editing == null ? _activeTab : '일반') {
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      switch (_activeTab) {
                         '일반' => _MonthCalendar(
                           isSelected: (d) => _isSameDay(d, _selectedDate),
                           onSelectDate: (d) => setState(() => _selectedDate = d),
@@ -516,9 +434,6 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                           onSelectDate: _onMultiDateTap,
                         ),
                         _ => _RepeatSettings(
-                          unit: _repeatUnit,
-                          units: _repeatUnits,
-                          onUnitChanged: (u) => setState(() => _repeatUnit = u),
                           weekdayLabels: _weekdayLabels,
                           selectedWeekdays: _repeatWeekdays,
                           onToggleWeekday: (i) => setState(
@@ -526,19 +441,14 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                                 ? _repeatWeekdays.remove(i)
                                 : _repeatWeekdays.add(i),
                           ),
-                          dayOfMonth: _repeatDayOfMonth,
-                          onDayOfMonthChanged: (v) => setState(() => _repeatDayOfMonth = v),
-                          month: _repeatMonth,
-                          onMonthChanged: (v) => setState(() => _repeatMonth = v),
-                          day: _repeatDay,
-                          onDayChanged: (v) => setState(() => _repeatDay = v),
-                          intervalValue: _repeatIntervalValue,
-                          onIntervalValueChanged: (v) => setState(() => _repeatIntervalValue = v),
-                          intervalUnit: _repeatIntervalUnit,
-                          intervalUnits: _intervalUnits,
-                          onIntervalUnitChanged: (u) => setState(() => _repeatIntervalUnit = u),
                           start: _repeatStart,
-                          onStartChanged: (d) => setState(() => _repeatStart = d),
+                          onStartChanged: (d) => setState(() {
+                            _repeatStart = d;
+                            // 종료일이 새 시작일보다 앞서면 4주 뒤로 다시 잡는다.
+                            if (_repeatEnd.isBefore(d)) {
+                              _repeatEnd = d.add(const Duration(days: 28));
+                            }
+                          }),
                           end: _repeatEnd,
                           onEndChanged: (d) => setState(() => _repeatEnd = d),
                         ),
@@ -597,11 +507,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     );
   }
 
-  String _titleForMode() {
-    final editing = widget.editing != null;
-    if (widget.compound) return editing ? '복합 루틴 수정하기' : '복합 루틴 추가하기';
-    return editing ? '단일 루틴 수정하기' : '단일 루틴 추가하기';
-  }
+  String _titleForMode() => widget.compound ? '복합 루틴 추가하기' : '단일 루틴 추가하기';
 
   static bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -627,9 +533,15 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
     });
   }
 
+  /// "다중" 탭: 이미 찍은 날짜면 빼고, 아니면 추가한다. 서버가 `DATES`로 받는
+  /// 날짜는 최대 12개라서 13번째는 막고 이유를 알려준다.
   void _onMultiDateTap(DateTime date) {
+    final existing = _multiDates.where((m) => _isSameDay(m, date)).firstOrNull;
+    if (existing == null && _multiDates.length >= maxRepeatDates) {
+      _showMessage('날짜는 최대 $maxRepeatDates개까지 고를 수 있어요');
+      return;
+    }
     setState(() {
-      final existing = _multiDates.where((m) => _isSameDay(m, date)).firstOrNull;
       if (existing != null) {
         _multiDates.remove(existing);
       } else {
@@ -687,50 +599,6 @@ class _TimeField extends StatelessWidget {
           Text(label, style: const TextStyle(color: _AddRoutineScreenState._labelColor, fontSize: 16)),
           Text(suffix, style: const TextStyle(color: _AddRoutineScreenState._placeholderColor, fontSize: 16)),
         ],
-      ),
-    );
-  }
-}
-
-/// "대상 선택"의 구성원 한 명(체크박스 + 이름) 칩.
-class _MemberChip extends StatelessWidget {
-  const _MemberChip({required this.name, required this.selected, required this.onTap});
-
-  final String name;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(25),
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: const [BoxShadow(color: Color(0x14000000), offset: Offset(0, 1), blurRadius: 4)],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              selected ? 'assets/images/checkbox_filled.svg' : 'assets/images/checkbox_empty.svg',
-              width: 22,
-              height: 22,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              name,
-              style: const TextStyle(
-                color: _AddRoutineScreenState._labelColor,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -870,61 +738,29 @@ class _MonthCalendar extends StatelessWidget {
   }
 }
 
-/// "반복" 탭의 내용. [unit]에 따라 매주(요일)/매월(며칠)/매년(몇 월
-/// 며칠)/주기(N일·주·개월마다) 중 하나의 하위 설정을 보여주고, 그 아래
-/// 공통으로 "시작 날짜"와 "종료 날짜"(비워두면 끝없이 반복 — 실제로는
-/// [RoutineRecurrence]가 1년까지만 생성한다) 를 고른다.
+/// "반복" 탭의 내용. 서버가 지원하는 "매주"만 남겼다: 반복할 요일을 고르고,
+/// 그 아래 "시작 날짜"와 "종료 날짜"를 고른다(둘 다 필수 — 서버의 `WEEKLY`가
+/// 기간이 있어야 날짜를 펼칠 수 있다). 선택한 요일이 기간 안에 하루도 없으면
+/// 서버가 오류 없이 0개를 만든다.
 class _RepeatSettings extends StatelessWidget {
   const _RepeatSettings({
-    required this.unit,
-    required this.units,
-    required this.onUnitChanged,
     required this.weekdayLabels,
     required this.selectedWeekdays,
     required this.onToggleWeekday,
-    required this.dayOfMonth,
-    required this.onDayOfMonthChanged,
-    required this.month,
-    required this.onMonthChanged,
-    required this.day,
-    required this.onDayChanged,
-    required this.intervalValue,
-    required this.onIntervalValueChanged,
-    required this.intervalUnit,
-    required this.intervalUnits,
-    required this.onIntervalUnitChanged,
     required this.start,
     required this.onStartChanged,
     required this.end,
     required this.onEndChanged,
   });
 
-  final String unit;
-  final List<String> units;
-  final ValueChanged<String> onUnitChanged;
-
   final List<String> weekdayLabels;
   final Set<int> selectedWeekdays;
   final ValueChanged<int> onToggleWeekday;
 
-  final int dayOfMonth;
-  final ValueChanged<int> onDayOfMonthChanged;
-
-  final int month;
-  final ValueChanged<int> onMonthChanged;
-  final int day;
-  final ValueChanged<int> onDayChanged;
-
-  final int intervalValue;
-  final ValueChanged<int> onIntervalValueChanged;
-  final String intervalUnit;
-  final List<String> intervalUnits;
-  final ValueChanged<String> onIntervalUnitChanged;
-
   final DateTime start;
   final ValueChanged<DateTime> onStartChanged;
-  final DateTime? end;
-  final ValueChanged<DateTime?> onEndChanged;
+  final DateTime end;
+  final ValueChanged<DateTime> onEndChanged;
 
   static const _labelColor = Color(0xFF505050);
 
@@ -933,82 +769,21 @@ class _RepeatSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SettingsRow(
-          label: '반복 기간',
-          trailing: _Dropdown<String>(
-            value: unit,
-            items: units,
-            labelOf: (v) => v,
-            onChanged: onUnitChanged,
-          ),
+        const Text('반복 요일', style: TextStyle(color: _labelColor, fontSize: 14)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (var i = 0; i < weekdayLabels.length; i++)
+              _WeekdayDot(
+                label: weekdayLabels[i],
+                selected: selectedWeekdays.contains(i),
+                onTap: () => onToggleWeekday(i),
+              ),
+          ],
         ),
-        const SizedBox(height: 12),
-        switch (unit) {
-          '매주' => Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (var i = 0; i < weekdayLabels.length; i++)
-                _WeekdayDot(
-                  label: weekdayLabels[i],
-                  selected: selectedWeekdays.contains(i),
-                  onTap: () => onToggleWeekday(i),
-                ),
-            ],
-          ),
-          '매월' => _SettingsRow(
-            label: '매월 며칠',
-            trailing: _Dropdown<int>(
-              value: dayOfMonth,
-              items: List.generate(31, (i) => i + 1),
-              labelOf: (v) => '$v일',
-              onChanged: onDayOfMonthChanged,
-            ),
-          ),
-          '매년' => Row(
-            children: [
-              Expanded(
-                child: _Dropdown<int>(
-                  value: month,
-                  items: List.generate(12, (i) => i + 1),
-                  labelOf: (v) => '$v월',
-                  onChanged: onMonthChanged,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _Dropdown<int>(
-                  value: day,
-                  items: List.generate(31, (i) => i + 1),
-                  labelOf: (v) => '$v일',
-                  onChanged: onDayChanged,
-                ),
-              ),
-            ],
-          ),
-          _ => Row(
-            children: [
-              Expanded(
-                child: _Dropdown<int>(
-                  value: intervalValue,
-                  items: List.generate(30, (i) => i + 1),
-                  labelOf: (v) => '$v',
-                  onChanged: onIntervalValueChanged,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _Dropdown<String>(
-                  value: intervalUnit,
-                  items: intervalUnits,
-                  labelOf: (v) => '$v마다',
-                  onChanged: onIntervalUnitChanged,
-                ),
-              ),
-            ],
-          ),
-        },
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _SettingsRow(
           label: '시작 날짜',
           trailing: _DateButton(
@@ -1029,23 +804,22 @@ class _RepeatSettings extends StatelessWidget {
           label: '종료 날짜',
           trailing: _DateButton(
             date: end,
-            placeholder: '없음',
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: end ?? start,
+                initialDate: end,
                 firstDate: start,
                 lastDate: DateTime(start.year + 5),
               );
-              onEndChanged(picked);
+              if (picked != null) onEndChanged(picked);
             },
-            onClear: end == null ? null : () => onEndChanged(null),
           ),
         ),
       ],
     );
   }
 }
+
 
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({required this.label, required this.trailing});
@@ -1065,65 +839,19 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({
-    required this.value,
-    required this.items,
-    required this.labelOf,
-    required this.onChanged,
-    super.key,
-  });
-
-  final T value;
-  final List<T> items;
-  final String Function(T) labelOf;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<T>(
-      value: value,
-      underline: const SizedBox.shrink(),
-      style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14),
-      items: [
-        for (final item in items) DropdownMenuItem(value: item, child: Text(labelOf(item))),
-      ],
-      onChanged: (v) {
-        if (v != null) onChanged(v);
-      },
-    );
-  }
-}
-
 class _DateButton extends StatelessWidget {
-  const _DateButton({required this.date, required this.onTap, this.placeholder, this.onClear});
+  const _DateButton({required this.date, required this.onTap});
 
-  final DateTime? date;
+  final DateTime date;
   final VoidCallback onTap;
-  final String? placeholder;
-  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
-    final label = date == null
-        ? (placeholder ?? '선택')
-        : '${date!.year}년 ${date!.month}월 ${date!.day}일';
     return InkWell(
       onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14)),
-          if (onClear != null)
-            InkResponse(
-              onTap: onClear,
-              radius: 12,
-              child: const Padding(
-                padding: EdgeInsets.only(left: 4),
-                child: Icon(Icons.close, size: 14, color: Color(0xFFA3A3A3)),
-              ),
-            ),
-        ],
+      child: Text(
+        '${date.year}년 ${date.month}월 ${date.day}일',
+        style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14),
       ),
     );
   }

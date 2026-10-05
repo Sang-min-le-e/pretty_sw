@@ -4,14 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/routine.dart';
 
-/// 루틴 카드 한 장. "11:00 교무실 가기 ・지예님의 기기" 한 줄에, 여러
-/// 단계로 이뤄진 루틴([routine.steps]가 있는 경우)이면 그 아래 번호가
-/// 매겨진 하위 할 일 목록이 항상(토글 없이) 펼쳐져 보인다. 오른쪽 끝의
-/// 화살표(›)는 눌렀을 때 완료 현황을 보여주는 상세 화면
-/// (`RoutineDetailScreen`, Figma node 392:2096)으로 이동하는 버튼이다 —
-/// 이전 버전에서는 이 화살표가 "카드 접기/펼치기" 토글이었지만, 새
-/// 디자인에서는 여러 단계 루틴도 목록에서 항상 펼쳐진 채로 보이고
-/// 화살표는 상세 화면으로만 쓰인다.
+/// 루틴 카드 한 장. "07:30~08:30 아침 준비 ・완료 1/3" 한 줄에, 하위 할 일이
+/// 둘 이상인 루틴이면 그 아래 번호가 매겨진 할 일 목록이 항상(토글 없이)
+/// 펼쳐져 보인다. 이미 완료된 할 일은 번호 배지가 하늘색이다(완료는 아이
+/// 기기가 서버에 올린 값이고 앱은 읽기만 한다). 카드를 누르면 완료 현황을
+/// 보여주는 상세 화면(`RoutineDetailScreen`, Figma node 392:2096)으로 이동하며,
+/// 이미 받은 루틴을 `extra`로 같이 넘긴다.
 ///
 /// 달력이 있는 루틴 화면(`RoutineScreen`)과 "오늘 할 일" 전체 목록 화면
 /// (`TodayRoutinesScreen`)이 똑같은 카드 디자인을 쓰기 때문에, 두 화면
@@ -26,14 +24,13 @@ class RoutineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasSteps = routine.steps.isNotEmpty;
-    final time = TimeOfDay.fromDateTime(routine.dateTime);
-    final timeLabel =
-        '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
+    // 할 일이 1개뿐인 단일 루틴은 제목과 같은 이름의 할 일 하나라서 목록을 또
+    // 보여주면 중복이다 — 둘 이상일 때만 펼쳐 보여준다.
+    final hasSteps = routine.smallRoutines.length > 1;
+    final timeLabel = routine.timeLabel;
 
     return GestureDetector(
-      onTap: () => context.push('/routine/detail/${routine.id}'),
+      onTap: () => context.push('/routine/detail/${routine.id}', extra: routine),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(23, 16, 15, 16),
@@ -58,7 +55,7 @@ class RoutineCard extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        '$timeLabel ${routine.title}',
+                        '${timeLabel.isEmpty ? '' : '$timeLabel '}${routine.title}',
                         style: const TextStyle(
                           color: _labelColor,
                           fontSize: 15,
@@ -67,7 +64,7 @@ class RoutineCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '・${routine.tag}',
+                        '・완료 ${routine.doneCount}/${routine.totalCount}',
                         style: const TextStyle(
                           color: _captionColor,
                           fontSize: 13,
@@ -88,12 +85,13 @@ class RoutineCard extends StatelessWidget {
             ),
             if (hasSteps) ...[
               const SizedBox(height: 14),
-              for (var i = 0; i < routine.steps.length; i++)
+              for (var i = 0; i < routine.smallRoutines.length; i++)
                 Padding(
                   padding: EdgeInsets.only(top: i == 0 ? 0 : 12, left: 4),
                   child: _RoutineStepRow(
                     stepNumber: i + 1,
-                    title: routine.steps[i],
+                    title: routine.smallRoutines[i].title,
+                    done: routine.smallRoutines[i].done,
                   ),
                 ),
             ],
@@ -104,12 +102,18 @@ class RoutineCard extends StatelessWidget {
   }
 }
 
-/// 펼쳐진 카드 안, 하위 할 일 한 줄: 회색 번호 배지 + 할 일 텍스트.
+/// 펼쳐진 카드 안, 하위 할 일 한 줄: 번호 배지 + 할 일 텍스트. 완료된 할 일은
+/// 배지가 하늘색, 아직이면 회색이다.
 class _RoutineStepRow extends StatelessWidget {
-  const _RoutineStepRow({required this.stepNumber, required this.title});
+  const _RoutineStepRow({
+    required this.stepNumber,
+    required this.title,
+    required this.done,
+  });
 
   final int stepNumber;
   final String title;
+  final bool done;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +124,7 @@ class _RoutineStepRow extends StatelessWidget {
           height: 13,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFFD9D9D9),
+            color: done ? const Color(0xFF4ABEFF) : const Color(0xFFD9D9D9),
             borderRadius: BorderRadius.circular(2),
           ),
           child: Text(

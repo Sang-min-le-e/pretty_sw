@@ -15,7 +15,7 @@ STOPS_CH.append(dict(
     file="lib/features/profile/presentation/profile_screen.dart",
     title="내 정보 탭",
     role="프로필 탭 (/profile)",
-    arrive="하단 탭바 네 번째 아이콘 → <code>bottom_nav_bar.dart</code> 38줄 <code>context.go('/profile')</code> → <code>router.dart</code> 198줄 <code>ProfileScreen()</code>에서 왔습니다.",
+    arrive="하단 탭바 네 번째 아이콘 → <code>bottom_nav_bar.dart</code> 38줄 <code>context.go('/profile')</code> → <code>router.dart</code> 193줄 <code>ProfileScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 1, "<code>dart:io</code>. 기기 안 <code>File</code>을 쓰려고 가져옵니다(프로필 사진 파일).", ["fileio"]),
         (3, 5, "Flutter 위젯, Riverpod, 화면 이동.", []),
@@ -133,7 +133,7 @@ STOPS_CH.append(dict(
     file="lib/features/profile/presentation/profile_edit_screen.dart",
     title="프로필 관리: 사진과 이름 바꾸기",
     role="프로필 관리 (/profile/edit)",
-    arrive="<code>profile_screen.dart</code> 59줄 <code>context.push('/profile/edit')</code> → <code>router.dart</code> 201줄 <code>ProfileEditScreen()</code>에서 왔습니다.",
+    arrive="<code>profile_screen.dart</code> 59줄 <code>context.push('/profile/edit')</code> → <code>router.dart</code> 196줄 <code>ProfileEditScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 1, "<code>dart:io</code>(사진 파일).", ["fileio"]),
         (3, 5, "Flutter 위젯, Riverpod, 화면 이동.", []),
@@ -183,7 +183,7 @@ STOPS_CH.append(dict(
     file="lib/features/profile/presentation/user_settings_screen.dart",
     title="사용자 설정: 로그아웃과 탈퇴",
     role="사용자 설정",
-    arrive="<code>profile_screen.dart</code> 118줄 <code>context.push('/profile/user-settings')</code> → <code>router.dart</code> 207줄 <code>UserSettingsScreen()</code>에서 왔습니다.",
+    arrive="<code>profile_screen.dart</code> 118줄 <code>context.push('/profile/user-settings')</code> → <code>router.dart</code> 202줄 <code>UserSettingsScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "Flutter 위젯, Riverpod, 화면 이동.", []),
         (5, 9, "뒤로가기 줄, <code>ApiException</code>, <b>탈퇴 로직(<code>account_actions.dart</code>)</b>, 계정 provider·인증 저장소, 설정 카드.", []),
@@ -212,7 +212,7 @@ STOPS_CH.append(dict(
     file="lib/features/profile/presentation/language_screen.dart",
     title="언어 선택 (자리만 잡은 화면)",
     role="언어 (/profile/language)",
-    arrive="<code>profile_screen.dart</code> 98줄 <code>context.push('/profile/language')</code> → <code>router.dart</code> 203줄 <code>LanguageScreen()</code>에서 왔습니다.",
+    arrive="<code>profile_screen.dart</code> 98줄 <code>context.push('/profile/language')</code> → <code>router.dart</code> 198줄 <code>LanguageScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 3, "Flutter 위젯, SVG, 화면 이동.", []),
         (5, 5, "뒤로가기 줄.", []),
@@ -237,7 +237,7 @@ STOPS_CH.append(dict(
     file="lib/features/profile/presentation/login_history_screen.dart",
     title="로그인 기록 (목업 값)",
     role="로그인 기록 (/profile/login-history)",
-    arrive="<code>profile_screen.dart</code> 122줄 <code>context.push('/profile/login-history')</code> → <code>router.dart</code> 212줄 <code>LoginHistoryScreen()</code>에서 왔습니다.",
+    arrive="<code>profile_screen.dart</code> 122줄 <code>context.push('/profile/login-history')</code> → <code>router.dart</code> 207줄 <code>LoginHistoryScreen()</code>에서 왔습니다.",
     chunks=[
         (1, 2, "Flutter 위젯, 화면 이동.", []),
         (4, 4, "뒤로가기 줄.", []),
