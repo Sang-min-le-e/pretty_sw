@@ -1,0 +1,127 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tomo 전체 파일 흐름</title>
+<style>
+:root {
+  --bg:#f6f7f9; --surface:#fff; --ink:#1d2330; --muted:#667085; --line:#d8dde6; --accent:#1c8fd6;
+  --ui:#e3f3ff; --ui-b:#7cc4f5; --data:#fff1d6; --data-b:#f1c15a; --domain:#e8f6e6; --domain-b:#8fcb87;
+  --core:#efe7fb; --core-b:#b79be6; --widget:#ffe6ee; --widget-b:#ef9bb4; --app:#eceff3; --app-b:#aab2c0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#12151b; --surface:#1b2029; --ink:#e8ebf1; --muted:#98a2b3; --line:#2f3745; --accent:#59b6f0;
+    --ui:#14344a; --ui-b:#2f7fae; --data:#43361a; --data-b:#a07f2c; --domain:#1d3a1b; --domain-b:#4f8a49;
+    --core:#2d2447; --core-b:#7a5fb8; --widget:#4a2133; --widget-b:#a24e6d; --app:#262c36; --app-b:#566074;
+  }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+.wrap { max-width:1180px; margin:0 auto; padding:28px 16px 64px; }
+h1 { font-size:28px; margin:0 0 6px; }
+h2 { font-size:20px; margin:40px 0 12px; }
+h3 { font-size:17px; margin:0; }
+p { margin:4px 0; color:var(--muted); }
+a { color:inherit; text-decoration:none; }
+code { font-family:ui-monospace,Menlo,monospace; font-size:.92em; background:var(--app); padding:1px 5px; border-radius:5px; }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 18px; }
+
+/* 화면 이동 흐름 */
+.screens { display:flex; flex-wrap:wrap; align-items:center; gap:8px 6px; }
+.scr { background:var(--ui); border:1.5px solid var(--ui-b); border-radius:10px; padding:7px 12px; font-size:13.5px; white-space:nowrap; }
+.scr small { display:block; color:var(--muted); font-size:11px; }
+.scr.alt { background:var(--data); border-color:var(--data-b); }
+.fl-arrow { color:var(--muted); font-size:18px; }
+.branch { display:flex; flex-direction:column; gap:6px; }
+.row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:10px; }
+.tab { background:var(--ui); border:1.5px solid var(--ui-b); border-radius:10px; padding:8px 10px; font-size:13px; }
+.tab b { display:block; }
+.tab span { color:var(--muted); font-size:12px; }
+
+/* 계층 */
+.layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:0; align-items:stretch; }
+.lay { padding:12px 10px; text-align:center; border:1.5px solid; font-size:13px; }
+.lay b { display:block; font-size:14px; }
+.lay span { color:var(--muted); font-size:12px; }
+.lay.ui { background:var(--ui); border-color:var(--ui-b); border-radius:12px 0 0 12px; }
+.lay.data { background:var(--data); border-color:var(--data-b); }
+.lay.domain { background:var(--domain); border-color:var(--domain-b); }
+.lay.core { background:var(--core); border-color:var(--core-b); }
+.lay.src { background:var(--app); border-color:var(--app-b); border-radius:0 12px 12px 0; }
+
+/* 장별 파일 흐름 */
+.legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:8px 0 4px; font-size:13px; color:var(--muted); }
+.lg { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:14px; height:14px; border-radius:4px; border:1.5px solid; display:inline-block; }
+.chapter { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; }
+.chapter header { margin-bottom:12px; }
+.ch-no { display:inline-block; background:var(--accent); color:#fff; border-radius:999px; padding:1px 10px; font-size:12px; margin-bottom:4px; }
+.track { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px 4px; }
+.arrow { align-self:center; color:var(--muted); font-size:18px; }
+.node { display:grid; gap:1px; width:158px; padding:8px 10px 8px 34px; border:1.5px solid; border-radius:10px; position:relative; transition:transform .12s, box-shadow .12s; }
+.node:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,.14); }
+.node .num { position:absolute; left:8px; top:8px; width:20px; height:20px; border-radius:50%; background:var(--surface); display:grid; place-items:center; font-size:11px; font-weight:600; }
+.node .fn { font-family:ui-monospace,Menlo,monospace; font-size:11.5px; font-weight:600; overflow-wrap:anywhere; }
+.node .role { font-size:12px; }
+.node .dir { font-size:10.5px; color:var(--muted); }
+.node.ui { background:var(--ui); border-color:var(--ui-b); }
+.node.data { background:var(--data); border-color:var(--data-b); }
+.node.domain { background:var(--domain); border-color:var(--domain-b); }
+.node.core { background:var(--core); border-color:var(--core-b); }
+.node.widget { background:var(--widget); border-color:var(--widget-b); }
+.node.app { background:var(--app); border-color:var(--app-b); }
+.sw.ui { background:var(--ui); border-color:var(--ui-b); } .sw.data { background:var(--data); border-color:var(--data-b); }
+.sw.domain { background:var(--domain); border-color:var(--domain-b); } .sw.core { background:var(--core); border-color:var(--core-b); }
+.sw.widget { background:var(--widget); border-color:var(--widget-b); } .sw.app { background:var(--app); border-color:var(--app-b); }
+.note { font-size:13px; }
+@media (max-width:720px) {
+  .tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .layers { grid-template-columns:1fr; } .lay { border-radius:0 !important; }
+  .node { width:calc(50% - 6px); }
+}
+</style>
+
+<div class="wrap">
+  <h1>Tomo 전체 파일 흐름</h1>
+  <p>화면이 어떻게 이어지는지, 파일이 어떤 층으로 나뉘는지, 그리고 <a href="tour.html"><b>코드 따라 읽기</b></a>의 54개 파일이 어떤 순서로 이어지는지를 한 장에 모았습니다. 파일 카드를 누르면 그 정류장으로 갑니다.</p>
+
+  <h2>1. 화면 이동 흐름</h2>
+  <div class="card">
+    <div class="screens">
+      <div class="scr">/splash<small>1.5초 로고</small></div><span class="fl-arrow">→</span>
+      <div class="scr">/login<small>이메일 로그인 (POST /auth/login)</small></div><span class="fl-arrow">→</span>
+      <div class="branch">
+        <div class="row"><span class="note">이름 있음 →</span><div class="scr">/ 홈</div></div>
+        <div class="row"><span class="note">이름 없음(첫 로그인) →</span>
+          <div class="scr alt">guardian-info<small>1/3 보호자 이름</small></div><span class="fl-arrow">→</span>
+          <div class="scr alt">child-info<small>2/3 자녀 등록</small></div><span class="fl-arrow">→</span>
+          <div class="scr alt">device-connection<small>3/3 기기 연결 대기</small></div><span class="fl-arrow">→</span>
+          <div class="scr">/ 홈</div></div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px">홈에 도착하면 하단 탭바(<code>bottom_nav_bar.dart</code>)로 네 화면을 오갑니다. 탭은 <code>context.go</code>로 갈아치우고, 그 안의 상세·추가 화면은 <code>context.push</code>로 위에 쌓습니다.</p>
+    <div class="tabs">
+      <div class="tab"><b>0 · 홈 /</b><span>기기 캐러셀, 연결된 기기, 현재 루틴<br>→ 기기 추가, 연결된 기기</span></div>
+      <div class="tab"><b>1 · 루틴 /routine</b><span>달력, 날짜별 카드<br>→ 오늘 할 일, 상세, 추가·수정, 템플릿</span></div>
+      <div class="tab"><b>2 · 기기 /devices</b><span>기기 카드 그리드<br>→ 기기 상세, 설정, 통계, 와이파이</span></div>
+      <div class="tab"><b>3 · 프로필 /profile</b><span>설정 카드<br>→ 프로필 관리, 사용자 설정, 언어, 로그인 기록</span></div>
+    </div>
+  </div>
+
+  <h2>2. 데이터가 흐르는 층</h2>
+  <div class="card">
+    <div class="layers">
+      <div class="lay ui"><b>화면</b><span>ConsumerWidget<br><code>ref.watch / read</code></span></div>
+      <div class="lay data"><b>provider</b><span>데이터를 꺼내는 손잡이<br><code>*Provider</code>, <code>*Actions</code></span></div>
+      <div class="lay data"><b>저장소</b><span>읽기·쓰기 약속<br><code>*Repository</code></span></div>
+      <div class="lay core"><b>도구</b><span><code>ApiClient(Dio)</code><br><code>LocalStorageService</code></span></div>
+      <div class="lay src"><b>데이터가 사는 곳</b><span>서버(백엔드) · 기기 안 Hive</span></div>
+    </div>
+    <p class="note" style="margin-top:12px"><b>서버에 있는 것</b>: 로그인, 내 정보(이름), 자녀 등록. <b>기기 안(Hive)에만 있는 것</b>: 루틴, 템플릿, 연결된 기기, 프로필 사진 경로, 로그인 세션(<code>accessUuid</code>). 쓰기가 끝나면 <code>ref.invalidate(목록Provider)</code>로 낡은 캐시를 버려 화면이 새로 그려집니다.</p>
+  </div>
+
+  <h2>3. 코드 따라 읽기: 장별 파일 순서</h2>
+  <div class="legend"><span class="lg"><i class="sw ui"></i>화면 (presentation)</span><span class="lg"><i class="sw data"></i>데이터 접근 (data: provider·저장소)</span><span class="lg"><i class="sw domain"></i>모델 (domain)</span><span class="lg"><i class="sw core"></i>기반 도구 (core: 서버·저장소)</span><span class="lg"><i class="sw widget"></i>공용 위젯 (app/widgets)</span><span class="lg"><i class="sw app"></i>앱 뼈대 (main·app·router·theme)</span></div>
+  <section class="chapter"><header><span class="ch-no">1장</span><h3>앱이 켜져서 로그인이 끝날 때까지</h3><p>앱이 켜지고 로그인 화면에서 서버에 로그인한다. 이름이 비어 있으면 2장, 있으면 3장(홈)으로 간다.</p></header><div class="track"><a class="node app" href="tour.html#stop-1" title="모든 것이 시작되는 곳"><span class="num">1</span><span class="fn">main.dart</span><span class="role">앱 시작점</span><span class="dir">lib/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node app" href="tour.html#stop-2" title="앱의 뼈대: 테마와 경로표를 끼운다"><span class="num">2</span><span class="fn">app.dart</span><span class="role">MaterialApp 설정</span><span class="dir">app/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node app" href="tour.html#stop-3" title="큰 글씨, 큰 버튼"><span class="num">3</span><span class="fn">theme.dart</span><span class="role">디자인 기본값</span><span class="dir">app/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node app" href="tour.html#stop-4" title="주소 → 화면 경로표"><span class="num">4</span><span class="fn">router.dart</span><span class="role">화면 경로표</span><span class="dir">app/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-5" title="1.5초 로고, 그리고 로그인으로"><span class="num">5</span><span class="fn">splash_screen.dart</span><span class="role">스플래시</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-6" title="로그인 화면과 _submit()"><span class="num">6</span><span class="fn">login_screen.dart</span><span class="role">로그인 화면</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-7" title="부품 조립 공장"><span class="num">7</span><span class="fn">auth_providers.dart</span><span class="role">provider 목록</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node core" href="tour.html#stop-8" title="Hive 상자 여는 도구"><span class="num">8</span><span class="fn">local_storage_service.dart</span><span class="role">Hive 래퍼</span><span class="dir">storage/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-9" title="로그인 토큰 보관함"><span class="num">9</span><span class="fn">auth_session_repository.dart</span><span class="role">세션 저장소</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node core" href="tour.html#stop-10" title="서버와 대화하는 전화기"><span class="num">10</span><span class="fn">api_client.dart</span><span class="role">Dio 서버 통신</span><span class="dir">network/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-11" title="login()의 진짜 내용"><span class="num">11</span><span class="fn">auth_repository.dart</span><span class="role">로그인 요청</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node core" href="tour.html#stop-12" title="실패를 한국어 메시지로"><span class="num">12</span><span class="fn">api_exception.dart</span><span class="role">오류 변환</span><span class="dir">network/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node domain" href="tour.html#stop-13" title="서버 JSON을 앱 객체로"><span class="num">13</span><span class="fn">auth_user.dart</span><span class="role">사용자 모델</span><span class="dir">domain/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-14" title="내 정보 받아오기, 그리고 분기"><span class="num">14</span><span class="fn">user_repository.dart</span><span class="role">내 정보 요청</span><span class="dir">data/</span></a></div></section><section class="chapter"><header><span class="ch-no">2장</span><h3>처음 로그인한 보호자의 온보딩</h3><p>처음 로그인한 보호자만 거친다: 이름 저장(PATCH /users/me) → 자녀 등록(POST /children) → 기기 연결 대기 → 홈.</p></header><div class="track"><a class="node ui" href="tour.html#stop-15" title="온보딩 1단계: 보호자 이름 저장"><span class="num">15</span><span class="fn">guardian_info_screen.dart</span><span class="role">초기 설정 1/3</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-16" title="진행 점 세 개"><span class="num">16</span><span class="fn">step_dots.dart</span><span class="role">3단계 표시 점</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-17" title="온보딩 2단계: 자녀 등록"><span class="num">17</span><span class="fn">child_info_screen.dart</span><span class="role">초기 설정 2/3</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-18" title="자녀 저장소를 꺼내는 곳"><span class="num">18</span><span class="fn">child_providers.dart</span><span class="role">자녀 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-19" title="자녀를 서버에 등록하고 읽기"><span class="num">19</span><span class="fn">child_repository.dart</span><span class="role">자녀 API 호출</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node domain" href="tour.html#stop-20" title="자녀 한 명을 담는 상자"><span class="num">20</span><span class="fn">child.dart</span><span class="role">자녀 모델</span><span class="dir">domain/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-21" title="온보딩 3단계: 기기 연결 대기 화면"><span class="num">21</span><span class="fn">device_connection_screen.dart</span><span class="role">초기 설정 3/3</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node widget" href="tour.html#stop-22" title="번지는 빛 효과"><span class="num">22</span><span class="fn">pairing_glow.dart</span><span class="role">공용 연출 위젯</span><span class="dir">widgets/</span></a></div></section><section class="chapter"><header><span class="ch-no">3장</span><h3>홈 화면과 하단 탭, 기기</h3><p>로그인 후의 중심 화면. 기기 목록은 서버가 아니라 기기 안 Hive에 저장돼 있다.</p></header><div class="track"><a class="node ui" href="tour.html#stop-23" title="홈 화면의 뼈대"><span class="num">23</span><span class="fn">home_screen.dart</span><span class="role">홈 탭 (/)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-24" title="기기 목록과 &quot;지금 보는 기기&quot;"><span class="num">24</span><span class="fn">device_providers.dart</span><span class="role">기기 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-25" title="기기를 Hive 상자에 넣고 꺼내기"><span class="num">25</span><span class="fn">device_repository.dart</span><span class="role">기기 저장소(Hive)</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node domain" href="tour.html#stop-26" title="기기 한 대를 담는 상자"><span class="num">26</span><span class="fn">connected_device.dart</span><span class="role">기기 모델</span><span class="dir">domain/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-27" title="홈과 기기 상세가 같이 쓰는 위젯 모음"><span class="num">27</span><span class="fn">device_overview.dart</span><span class="role">공용 위젯 모음</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node widget" href="tour.html#stop-28" title="네 화면이 같이 쓰는 하단 탭바"><span class="num">28</span><span class="fn">bottom_nav_bar.dart</span><span class="role">하단 탭바</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-29" title="알림 개수 provider"><span class="num">29</span><span class="fn">notification_providers.dart</span><span class="role">알림 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-30" title="기기 탭: 2열 카드 그리드"><span class="num">30</span><span class="fn">devices_screen.dart</span><span class="role">기기 탭 (/devices)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-31" title="연결된 기기 화면"><span class="num">31</span><span class="fn">connected_devices_screen.dart</span><span class="role">/connected-devices</span><span class="dir">presentation/</span></a></div></section><section class="chapter"><header><span class="ch-no">4장</span><h3>루틴 만들기와 보기</h3><p>하단 탭 1번. 루틴도 Hive에 저장하며, 저장할 때마다 provider를 invalidate해서 화면이 갱신된다.</p></header><div class="track"><a class="node ui" href="tour.html#stop-32" title="루틴 탭: 달력과 그날의 카드"><span class="num">32</span><span class="fn">routine_screen.dart</span><span class="role">루틴 탭 (/routine)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-33" title="루틴 목록에서 &quot;그날 것&quot;을 뽑아내는 provider들"><span class="num">33</span><span class="fn">routine_providers.dart</span><span class="role">루틴 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-34" title="루틴을 Hive &#x27;routines&#x27; 상자에"><span class="num">34</span><span class="fn">routine_repository.dart</span><span class="role">루틴 저장소(Hive)</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node domain" href="tour.html#stop-35" title="루틴 한 개와 참여자"><span class="num">35</span><span class="fn">routine.dart</span><span class="role">루틴 모델</span><span class="dir">domain/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-36" title="루틴 카드와 카드 목록"><span class="num">36</span><span class="fn">routine_card.dart</span><span class="role">루틴 카드 위젯</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-37" title="오른쪽 아래 &quot;+&quot; 버튼"><span class="num">37</span><span class="fn">add_routine_button.dart</span><span class="role">+ 버튼 위젯</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-38" title="무엇을 추가할까요?"><span class="num">38</span><span class="fn">routine_type_select_screen.dart</span><span class="role">루틴 유형 선택</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-39" title="루틴 추가·수정 폼 (일반·기간·반복·다중)"><span class="num">39</span><span class="fn">add_routine_screen.dart</span><span class="role">루틴 추가/수정 폼</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node domain" href="tour.html#stop-40" title="&quot;매주 월·수&quot;를 날짜 목록으로 펼치기"><span class="num">40</span><span class="fn">routine_recurrence.dart</span><span class="role">반복 날짜 계산</span><span class="dir">domain/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-41" title="저장해 둔 템플릿 목록과 저장"><span class="num">41</span><span class="fn">routine_template_providers.dart</span><span class="role">템플릿 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-42" title="템플릿 사용: 고르면 폼이 미리 채워진다"><span class="num">42</span><span class="fn">routine_template_list_screen.dart</span><span class="role">템플릿 목록 화면</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-43" title="오늘 할 일: 위로 당기면 달력으로"><span class="num">43</span><span class="fn">today_routines_screen.dart</span><span class="role">오늘 할 일 목록</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-44" title="루틴 상세: 누가 했나"><span class="num">44</span><span class="fn">routine_detail_screen.dart</span><span class="role">루틴 상세 (/routine/detail/:id)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node widget" href="tour.html#stop-45" title="직접 그리는 원형 진행률"><span class="num">45</span><span class="fn">progress_ring.dart</span><span class="role">원형 게이지</span><span class="dir">widgets/</span></a></div></section><section class="chapter"><header><span class="ch-no">5장</span><h3>프로필과 계정</h3><p>하단 탭 3번. 이름 변경은 서버(PATCH), 프로필 사진은 기기 안에만 저장한다.</p></header><div class="track"><a class="node ui" href="tour.html#stop-46" title="내 정보 탭"><span class="num">46</span><span class="fn">profile_screen.dart</span><span class="role">프로필 탭 (/profile)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-47" title="설정 카드와 줄 세 종류"><span class="num">47</span><span class="fn">settings_card.dart</span><span class="role">설정 카드 위젯</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-48" title="프로필 사진 고르기·저장"><span class="num">48</span><span class="fn">avatar_providers.dart</span><span class="role">아바타 provider</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node data" href="tour.html#stop-49" title="사진 경로를 &#x27;profile&#x27; 상자에"><span class="num">49</span><span class="fn">avatar_repository.dart</span><span class="role">아바타 저장소(Hive)</span><span class="dir">data/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-50" title="프로필 관리: 사진과 이름 바꾸기"><span class="num">50</span><span class="fn">profile_edit_screen.dart</span><span class="role">프로필 관리 (/profile/edit)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node widget" href="tour.html#stop-51" title="&quot;‹ 제목&quot; 상단 바"><span class="num">51</span><span class="fn">back_header.dart</span><span class="role">공용 뒤로가기 줄</span><span class="dir">widgets/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-52" title="사용자 설정: 로그아웃과 탈퇴"><span class="num">52</span><span class="fn">user_settings_screen.dart</span><span class="role">사용자 설정</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-53" title="언어 선택 (자리만 잡은 화면)"><span class="num">53</span><span class="fn">language_screen.dart</span><span class="role">언어 (/profile/language)</span><span class="dir">presentation/</span></a><span class="arrow" aria-hidden="true">→</span><a class="node ui" href="tour.html#stop-54" title="로그인 기록 (목업 값)"><span class="num">54</span><span class="fn">login_history_screen.dart</span><span class="role">로그인 기록 (/profile/login-history)</span><span class="dir">presentation/</span></a></div></section>
+</div>

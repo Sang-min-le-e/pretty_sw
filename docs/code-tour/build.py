@@ -8,7 +8,7 @@ the script stops and prints which file/lines to fix in spec.py.
 import html, re, sys, os
 sys.dont_write_bytecode = True  # keep docs/code-tour free of __pycache__
 sys.path.insert(0, os.path.dirname(__file__))
-from spec import STOPS, CONCEPTS
+from spec import STOPS, CONCEPTS, CHAPTERS
 
 # Repo root = two folders up from this script (docs/code-tour/ -> repo).
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -40,6 +40,7 @@ def hl(line):
 seen = set()
 stops_html, nav_html = [], []
 problems = []
+last_ch = None
 for i, st in enumerate(STOPS, 1):
     lines = open(os.path.join(REPO, st["file"]), encoding="utf-8").read().split("\n")
     if lines and lines[-1] == "": lines.pop()
@@ -62,13 +63,17 @@ for i, st in enumerate(STOPS, 1):
     missing = [k for k in range(1, n + 1) if k not in covered and lines[k-1].strip()]
     if missing: problems.append(f"{st['file']}: uncovered non-blank lines {missing}")
     total = len(STOPS)
+    ch = st.get("chapter", 1)
+    if ch != last_ch:
+        nav_html.append(f'<li class="chap"><span class="eyebrow">{ch}장 · {CHAPTERS[ch]}</span></li>')
+        last_ch = ch
     prev_btn = f'<button type="button" class="btn ghost" data-go="{i-1}">← 이전 정류장</button>' if i > 1 else '<span></span>'
     next_btn = (f'<button type="button" class="btn" data-go="{i+1}">다음 정류장: {os.path.basename(STOPS[i]["file"])} →</button>'
-                if i < total else '<span class="end">1장 끝. 다음 장은 홈 화면부터 이어집니다.</span>')
+                if i < total else '<span class="end">마지막 장 끝. 수고하셨습니다.</span>')
     stops_html.append(f'''
 <article class="stop" id="stop-{i}" data-i="{i}"{'' if i == 1 else ' hidden'}>
   <header class="stop-head">
-    <span class="eyebrow">정류장 {i} / {total}</span>
+    <span class="eyebrow">{ch}장 · 정류장 {i} / {total}</span>
     <h2>{st["title"]}</h2>
     <p class="path"><code>{st["file"]}</code> · {n}줄</p>
     <p class="arrive"><b>어떻게 왔나</b> {st["arrive"]}</p>

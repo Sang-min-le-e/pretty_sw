@@ -1,0 +1,198 @@
+# -*- coding: utf-8 -*-
+# 2장: 처음 로그인한 보호자의 온보딩 (guardian-info → child-info → device-connection)
+
+CONCEPTS_CH = {
+    "gopush": ("context.go 와 context.push", "<code>context.go('/x')</code>는 지금 화면을 <b>갈아치우고</b> /x로 갑니다(뒤로가기 목록이 새로 시작). <code>context.push('/x')</code>는 지금 화면 <b>위에 쌓습니다</b>(뒤로가기를 누르면 이전 화면으로 돌아옴). <code>context.pop()</code>이 그 쌓은 것을 한 장 걷어내는 동작이고, <code>context.canPop()</code>은 \"걷어낼 화면이 있는가\"를 묻습니다."),
+    "layout": ("Column · Row · Spacer · Expanded", "<code>Column</code>은 자식들을 위에서 아래로, <code>Row</code>는 왼쪽에서 오른쪽으로 놓습니다. <code>Spacer(flex: n)</code>은 남는 공간을 비율(flex)대로 나눠 먹는 빈칸이고, <code>Expanded(flex: n)</code>은 자식이 남는 공간을 비율대로 차지하게 합니다. <code>SizedBox(height: 16)</code>은 눈에 안 보이는 16짜리 간격입니다. 이 숫자들은 Figma에서 잰 값입니다."),
+    "formfield": ("Form · TextFormField · validator", "<code>Form</code>은 입력 칸들을 한 묶음으로 만들고, <code>GlobalKey&lt;FormState&gt;</code>로 만든 <code>_formKey</code>를 달아두면 <code>_formKey.currentState!.validate()</code> 한 번으로 모든 칸의 <code>validator</code>를 실행해 줍니다. <code>validator</code>는 \"문제가 있으면 오류 문구(String), 괜찮으면 null\"을 돌려주는 함수입니다. <code>TextEditingController</code>는 칸에 입력된 글자를 <code>.text</code>로 꺼내게 해주는 손잡이이고, 화면이 사라질 때 <code>dispose()</code>로 꼭 정리합니다."),
+    "interp": ("문자열 속 $ (보간)", "<code>'$y년'</code>처럼 문자열 안에 <code>$이름</code>을 쓰면 그 변수의 값이 끼워 들어갑니다. y가 2026이면 \"2026년\"이 됩니다. 식을 넣을 때는 <code>${a + b}</code>처럼 중괄호를 씁니다."),
+    "maplist": ("리스트 .map(...).toList()", "<code>목록.map((x) => 무엇)</code>은 목록의 모든 원소를 하나씩 다른 것으로 바꾸는 변환입니다. 결과가 바로 리스트가 아니라서 <code>.toList()</code>로 리스트로 만들어 줍니다. 여기서는 숫자 목록(2026, 2025, ...)을 드롭다운 선택지 위젯 목록으로 바꾸는 데 씁니다. <code>List.generate(12, (i) => i + 1)</code>은 \"0부터 11까지 i를 돌려 i+1을 모은 리스트\", 즉 1~12입니다."),
+    "dropdown": ("DropdownButtonFormField", "선택지 목록에서 하나를 고르는 칸입니다. <code>items</code>가 선택지들, <code>initialValue</code>가 처음 선택된 값, 사용자가 고르면 <code>onChanged</code>가 불려서 우리는 <code>setState</code>로 State의 변수(<code>_year</code> 등)에 저장합니다. Form 안에 있으므로 <code>validator</code>도 똑같이 동작합니다."),
+}
+
+STOPS_CH = []
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/onboarding/presentation/guardian_info_screen.dart",
+    title="온보딩 1단계: 보호자 이름 저장",
+    role="초기 설정 1/3",
+    arrive="<code>login_screen.dart</code> 50줄에서 <code>user.name</code>이 null이면 <code>context.go('/onboarding/guardian-info')</code> → <code>router.dart</code> 70줄 <code>GuardianInfoScreen()</code>에서 왔습니다.",
+    chunks=[
+        (1, 3, "Flutter 기본 위젯, Riverpod, 화면 이동 패키지. 로그인 화면과 같은 재료입니다.", []),
+        (5, 7, "우리 코드 셋. <code>ApiException</code>(서버 오류를 한국어 메시지로 바꾼 것), <code>auth_providers.dart</code>(여기서 <code>userRepositoryProvider</code>를 꺼냅니다), 그리고 상단 진행 점 위젯 <code>StepDots</code>입니다.", []),
+        (9, 16, "문서 주석. 이 화면이 Figma 어느 화면인지, 그리고 \"자녀와의 관계\" 입력이 원래 이 화면에 있었지만 백엔드가 그 값을 <b>자녀 등록</b>에서 받도록 설계돼 있어 다음 화면으로 옮겼다는 이력이 적혀 있습니다.", []),
+        (17, 22, "로그인 화면과 같은 모양: 입력값과 로딩 상태가 있으니 Stateful, <code>ref</code>를 쓰려고 <code>ConsumerStatefulWidget</code>입니다.", ["stateful"]),
+        (24, 24, "실제 내용 클래스(State).", []),
+        (25, 28, "Figma에서 뽑은 색 네 개를 이름 붙여 둔 상수입니다. 글자색, 힌트(안내 글자)색, 테두리색, 브랜드 하늘색. 이렇게 이름을 붙이면 색을 바꿀 때 한 곳만 고치면 됩니다.", []),
+        (30, 32, "<code>_formKey</code>(폼 손잡이), <code>_nameController</code>(이름 칸의 글자), <code>_submitting</code>(요청 중 여부). 로그인 화면과 같은 세 가지 구성입니다.", ["formfield"]),
+        (34, 38, "화면이 사라질 때 컨트롤러를 정리합니다.", []),
+        (40, 54, "<b>입력 칸 꾸밈을 만드는 함수.</b> 이 화면의 칸들이 모두 같은 모양이라 함수로 뺐습니다. 안내 글자(<code>hintText</code>)만 인자로 받고, 안쪽 여백과 둥근 테두리(반지름 16)를 정합니다. <code>border</code>(기본)와 <code>enabledBorder</code>(입력 가능 상태)에 같은 값을 넣어야 어느 상태에서도 같은 테두리가 보입니다.", []),
+        (56, 57, "<b>\"다음으로\" 버튼을 누르면 실행.</b> 폼 검사를 먼저 하고, 비어 있으면 바로 끝냅니다.", ["async"]),
+        (58, 59, "로딩 표시를 켜고 실패할 수 있는 일을 시작합니다.", ["trycatch"]),
+        (60, 60, "<b>서버에 이름 저장.</b> <code>userRepositoryProvider</code>에서 꺼낸 저장소의 <code>updateMe(name: ...)</code>가 <code>PATCH /users/me</code>를 보냅니다. 이 요청이 성공해야 서버의 <code>name</code>이 채워지고, 다음 로그인부터는 온보딩을 건너뛰고 홈으로 갑니다.", []),
+        (61, 62, "화면이 아직 살아 있는지 확인한 뒤 다음 단계로 <b>push</b>합니다. go가 아니라 push라서 다음 화면에서 뒤로가기를 누르면 이 화면으로 돌아옵니다.", ["gopush"]),
+        (63, 69, "실패하면 서버 메시지를 스낵바로 보여주고, 어느 쪽이든 마지막에 로딩을 끕니다. 로그인 화면의 <code>_submit</code>과 같은 구조입니다.", []),
+        (71, 77, "화면 틀. 배경은 흰색, <code>SafeArea</code>로 상태바를 피하고, 좌우에 42씩 여백(<code>Padding</code>)을 줍니다.", ["build"]),
+        (78, 82, "<code>Form</code>이 입력 칸을 묶고 <code>_formKey</code>를 답니다. 안쪽 <code>Column</code>은 위에서 아래로 쌓으며 <code>crossAxisAlignment.start</code>는 자식들을 왼쪽에 붙입니다.", ["layout"]),
+        (83, 89, "<b>뒤로가기 버튼.</b> 쌓인 화면이 있으면(<code>canPop</code>) 한 장 걷어내고, 없으면 로그인 화면으로 갑니다. 온보딩에 <code>go</code>로 들어왔다면 쌓인 화면이 없기 때문에 이 분기가 필요합니다.", []),
+        (90, 103, "제목 글자. <code>\\n</code>은 줄바꿈이고 <code>height: 1.4</code>는 줄 간격입니다. 가운데 정렬을 위해 가로를 꽉 채우는(<code>double.infinity</code>) 상자에 넣었습니다.", []),
+        (104, 105, "3단계 중 첫 번째 점이 켜진 진행 표시(<code>activeIndex: 0</code>).", []),
+        (106, 106, "남는 공간의 2/7를 차지하는 빈칸(<code>Spacer(flex: 2)</code>와 아래의 <code>flex: 5</code> 비율). 입력 칸을 화면 위쪽 1/3 지점쯤에 놓는 역할입니다.", []),
+        (107, 111, "\"보호자 성명\" 라벨과 8짜리 간격.", []),
+        (112, 117, "<b>이름 입력 칸.</b> 컨트롤러를 연결하고 위에서 만든 꾸밈 함수로 안내 글자를 넣습니다. <code>validator</code>는 비었으면 안내 문구를, 아니면 null을 돌려줍니다.", ["arrow"]),
+        (118, 118, "남는 공간의 5/7(<code>flex: 5</code>)를 먹는 빈칸. 버튼을 화면 아래로 밀어냅니다.", []),
+        (119, 128, "<b>\"다음으로\" 버튼.</b> 높이 56, 가로 꽉 채움, 하늘색 배경에 둥근 알약 모양(<code>StadiumBorder</code>). 요청 중이면 <code>onPressed: null</code>이라 누를 수 없습니다.", []),
+        (129, 136, "버튼 안에 보일 것. 요청 중이면 작은 로딩 원, 아니면 \"다음으로\" 글자.", []),
+        (137, 146, "버튼 괄호 닫기, 아래 여백 16, 나머지 괄호 닫기들.", []),
+    ],
+    next_hint="7줄 <code>step_dots.dart</code>의 <code>StepDots</code>를 Ctrl+클릭합니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/onboarding/presentation/widgets/step_dots.dart",
+    title="진행 점 세 개",
+    role="3단계 표시 점",
+    arrive="<code>guardian_info_screen.dart</code> 105줄 <code>StepDots(activeIndex: 0)</code>에서 왔습니다. 자녀 정보·기기 연결 화면도 같은 위젯을 씁니다.",
+    chunks=[
+        (1, 1, "Flutter 기본 위젯.", []),
+        (3, 8, "<b>부모에게서 숫자를 받는 위젯.</b> <code>activeIndex</code>는 \"몇 번째 점을 켤지\"이고 호출하는 쪽이 <code>StepDots(activeIndex: 1)</code>처럼 넘깁니다. <code>_count = 3</code>은 점의 총 개수. 스스로 바뀌는 값이 없어서 <code>StatelessWidget</code>입니다.", ["class"]),
+        (10, 13, "<code>Row</code>(가로 배치). <code>mainAxisSize.min</code>은 \"내용물만큼만 가로를 차지해라\"라서 가운데 정렬하기 쉽습니다.", ["layout"]),
+        (14, 15, "<code>List.generate(3, ...)</code>로 점 3개를 만듭니다. 번호(<code>index</code>)가 <code>activeIndex</code>와 같으면 \"켜진 점\"입니다.", []),
+        (16, 30, "점 하나: 좌우 2씩 여백 안에 13×13 동그라미. 켜졌으면 브랜드 하늘색, 아니면 연한 회색입니다. <code>조건 ? A : B</code>로 색을 고릅니다.", []),
+    ],
+    next_hint="로그인 이름 저장은 이미 본 <code>user_repository.dart</code>의 <code>updateMe</code>(PATCH /users/me)입니다. 다음은 2단계 <code>child_info_screen.dart</code>로 갑니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/onboarding/presentation/child_info_screen.dart",
+    title="온보딩 2단계: 자녀 등록",
+    role="초기 설정 2/3",
+    arrive="<code>guardian_info_screen.dart</code> 62줄 <code>context.push('/onboarding/child-info')</code> → <code>router.dart</code> 75줄 <code>ChildInfoScreen()</code>에서 왔습니다.",
+    chunks=[
+        (1, 3, "같은 재료(Flutter, Riverpod, go_router).", []),
+        (5, 7, "<code>ApiException</code>, 자녀 데이터 계층(<code>child_providers.dart</code>), 진행 점.", []),
+        (9, 14, "문서 주석. <code>POST /children</code>으로 자녀를 등록하며, <code>relationship</code>은 백엔드가 <code>PARENT</code>/<code>ADMIN</code> 두 값만 받는다는 설명입니다.", []),
+        (15, 20, "Stateful 위젯 껍데기. 1단계 화면과 똑같은 구조입니다.", []),
+        (22, 26, "색 상수 네 개(1단계와 같음).", []),
+        (28, 30, "<b>화면 글자 → 서버 값 변환표.</b> <code>Map</code>(사전)로 \"부모\"→<code>'PARENT'</code>, \"관리자\"→<code>'ADMIN'</code>을 짝지었습니다. 화면에는 한국어를 보이고 서버에는 코드값을 보내기 위해서입니다. 앞의 <code>static const</code>는 \"클래스에 하나만 있는 고정값\"입니다.", ["generic"]),
+        (32, 33, "폼 손잡이와 이름 칸 컨트롤러.", []),
+        (34, 37, "<b>값이 아직 없을 수 있는 선택값들.</b> 연·월·일은 <code>int?</code>, 관계는 <code>String?</code>입니다. 드롭다운에서 고르기 전에는 null이고, 고르면 <code>setState</code>로 채워집니다.", ["null"]),
+        (38, 38, "요청 중 여부.", []),
+        (40, 44, "화면이 사라질 때 컨트롤러 정리.", []),
+        (46, 60, "입력 칸 꾸밈 함수. 1단계 화면과 복사한 것처럼 같습니다(같은 코드가 두 파일에 있는 중복입니다).", []),
+        (62, 64, "<b>\"다음으로\" 버튼.</b> 폼 검사 후 로딩 시작.", ["async"]),
+        (65, 70, "<b>자녀 등록 요청.</b> <code>childRepositoryProvider</code>의 <code>createChild</code>를 부릅니다. 생년월일은 세 숫자로 <code>DateTime(년, 월, 일)</code>을 만들고, 뒤의 <code>!</code>는 \"검사를 통과했으니 null이 아니다\"라는 보증입니다. 관계는 28줄 변환표로 <code>'PARENT'</code> 같은 코드값으로 바꿔 보냅니다.", ["null"]),
+        (71, 72, "성공하면 다음 단계(기기 연결)로 push.", ["gopush"]),
+        (73, 79, "실패 처리와 로딩 끄기. 이전 화면과 같은 구조입니다.", ["trycatch"]),
+        (81, 85, "<code>build</code> 시작. 이번에는 시작하자마자 계산할 것이 있습니다. <code>currentYear</code>는 올해 연도, <code>years</code>는 올해부터 거꾸로 20개 연도입니다(<code>List.generate</code>). 드롭다운 선택지에 쓸 목록입니다.", ["build", "maplist"]),
+        (86, 95, "화면 틀, 좌우 42 여백, 폼, Column. 1단계와 같습니다.", ["layout"]),
+        (96, 103, "뒤로가기 버튼. 쌓인 화면이 없으면 보호자 정보 화면으로 갑니다.", []),
+        (104, 120, "제목, 두 번째 점이 켜진 진행 표시(<code>activeIndex: 1</code>), 빈칸.", []),
+        (121, 131, "\"자녀 성명\" 라벨과 이름 입력 칸.", ["formfield"]),
+        (132, 137, "32 간격 뒤에 \"자녀 생년월일\" 라벨.", []),
+        (138, 142, "<b>연·월·일 세 칸을 가로로 나란히.</b> <code>Row</code> 안의 <code>Expanded(flex: 116)</code>은 가로 공간을 비율로 나눠 갖습니다. 116:86:104는 Figma에서 잰 폭의 비율입니다.", ["layout"]),
+        (143, 153, "<b>연도 드롭다운.</b> 선택지(<code>items</code>)는 40~50줄에서 만든 <code>years</code>를 <code>DropdownMenuItem</code>으로 바꾼 것입니다. 글자 <code>'$y년'</code>의 <code>$y</code>는 숫자를 문자열에 끼워 넣습니다. 고르면 <code>setState</code>로 <code>_year</code>에 저장하고, 안 골랐으면 빈 문구(<code>''</code>)를 돌려줘 폼 검사에서 막습니다.", ["dropdown", "maplist", "interp"]),
+        (154, 169, "<b>월 드롭다운.</b> 연도와 같은 구조에 선택지가 1~12입니다. 칸 사이는 6짜리 간격.", []),
+        (170, 186, "<b>일 드롭다운.</b> 선택지 1~31. 칸 사이 5짜리 간격 뒤에 <code>Row</code>가 끝납니다. 31일이 항상 있어서 \"2월 31일\" 같은 날짜도 고를 수 있다는 한계가 있습니다.", []),
+        (187, 192, "32 간격 뒤에 \"자녀와의 관계\" 라벨.", []),
+        (193, 202, "<b>관계 드롭다운.</b> 선택지는 변환표의 키(\"부모\", \"관리자\")들입니다. 고르면 <code>_relationship</code>에 한국어 표기가 저장되고, 서버로 보낼 때 69줄에서 코드값으로 바뀝니다.", []),
+        (203, 222, "남는 공간을 먹는 빈칸과 하늘색 \"다음으로\" 버튼(1단계와 같은 모양, 요청 중이면 로딩 원).", []),
+        (223, 236, "버튼 아래 작은 글자 버튼 \"두명 이상의 자녀와 사용할래요\". <code>onPressed: () {}</code>는 아무것도 안 하는 빈 함수라 지금은 눌러도 반응이 없습니다(아직 안 만든 기능).", []),
+        (237, 244, "괄호 닫기들.", []),
+    ],
+    next_hint="6줄 <code>child_providers.dart</code>의 <code>childRepositoryProvider</code>를 Ctrl+클릭합니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/children/data/child_providers.dart",
+    title="자녀 저장소를 꺼내는 곳",
+    role="자녀 provider",
+    arrive="<code>child_info_screen.dart</code> 66줄 <code>ref.read(childRepositoryProvider)</code>에서 왔습니다.",
+    chunks=[
+        (1, 4, "Riverpod, 그리고 <code>auth_providers.dart</code>(여기서 <code>apiClientProvider</code>를 가져옵니다), 자녀 저장소 파일.", []),
+        (6, 8, "<b>1장에서 본 것과 같은 패턴.</b> 서버와 통신하는 <code>apiClientProvider</code>를 <code>ref.watch</code>로 꺼내 <code>ApiChildRepository</code>에 끼워서 돌려줍니다. 화면은 이 provider만 알면 됩니다.", ["provider"]),
+    ],
+    next_hint="<code>ApiChildRepository</code>를 Ctrl+클릭해 <code>child_repository.dart</code>로 갑니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/children/data/child_repository.dart",
+    title="자녀를 서버에 등록하고 읽기",
+    role="자녀 API 호출",
+    arrive="<code>child_providers.dart</code> 7줄 <code>ApiChildRepository</code>, 즉 <code>child_info_screen.dart</code> 66줄 <code>createChild(...)</code>에서 왔습니다.",
+    chunks=[
+        (1, 5, "Dio(서버 요청 도구), 우리 서버 통신 객체, 오류 변환, 자녀 모델.", []),
+        (7, 16, "<b>\"자녀 저장소가 할 수 있는 일\" 약속.</b> <code>createChild</code>는 이름·생년월일·관계를 받아 <code>Child</code>를 돌려주고, <code>getChildren</code>은 내 자녀 목록을 돌려줍니다. 화면은 이 약속만 보고 씁니다.", ["abstract"]),
+        (18, 21, "서버 통신 객체를 받아 필드에 보관하는 구현체. 1장의 <code>ApiAuthRepository</code>와 같은 모양입니다.", []),
+        (23, 28, "<code>createChild</code>의 구현 시작. 이름 있는 인자 세 개를 <code>required</code>로 받습니다.", ["constructor"]),
+        (29, 37, "<b>POST /children.</b> 보낼 내용(<code>data</code>)을 사전으로 만듭니다. 생년월일은 서버 규칙(<code>yyyy-MM-dd</code>)에 맞게 56줄 <code>_dateOnly</code>로 문자열로 바꿔 보냅니다.", ["trycatch"]),
+        (38, 38, "응답의 <code>data</code>를 <code>Child</code> 객체로 바꿔 돌려줍니다.", []),
+        (39, 42, "Dio 오류는 한국어 메시지를 가진 <code>ApiException</code>으로 바꿔 던집니다(1장 <code>api_exception.dart</code>).", []),
+        (44, 54, "<b>GET /children.</b> 응답의 <code>data</code>는 JSON 배열입니다. <code>.map(...)</code>으로 원소마다 <code>Child.fromJson</code>을 적용하고 <code>.toList()</code>로 리스트로 만듭니다. 지금 이 함수를 부르는 화면은 없습니다(나중에 쓸 준비).", ["maplist"]),
+        (56, 63, "<b>날짜를 \"2020-03-05\" 모양 문자열로.</b> <code>padLeft(2, '0')</code>은 \"3\"을 \"03\"처럼 앞을 0으로 채워 자릿수를 맞춥니다. <code>'$y-$m-$d'</code>는 세 값을 하이픈으로 이어 붙입니다.", ["interp"]),
+    ],
+    next_hint="<code>Child.fromJson</code>의 <code>Child</code>를 Ctrl+클릭해 <code>child.dart</code>로 갑니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/children/domain/child.dart",
+    title="자녀 한 명을 담는 상자",
+    role="자녀 모델",
+    arrive="<code>child_repository.dart</code> 38줄 <code>Child.fromJson(...)</code>에서 왔습니다.",
+    chunks=[
+        (1, 1, "문서 주석. API 문서 6장과 같은 모양이라고 적혀 있습니다.", []),
+        (2, 8, "자녀 한 명의 설계도와 생성자. 네 값 모두 <code>required</code>입니다.", ["constructor"]),
+        (10, 12, "자녀 번호, 이름, 생년월일(<code>DateTime</code>).", []),
+        (14, 16, "관계 값. <code>PARENT</code> 또는 <code>ADMIN</code> 둘뿐입니다.", []),
+        (18, 26, "JSON 사전에서 값을 꺼내 <code>Child</code>를 만드는 factory 생성자. 생년월일은 문자열 \"2020-03-05\"를 <code>DateTime.parse</code>로 날짜 객체로 바꿉니다. <code>AuthUser.fromJson</code>과 같은 방식입니다.", ["factory"]),
+    ],
+    next_hint="자녀 등록은 끝입니다. 다시 <code>child_info_screen.dart</code> 72줄 <code>context.push('/onboarding/device-connection')</code> → <code>device_connection_screen.dart</code>로 갑니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/features/onboarding/presentation/device_connection_screen.dart",
+    title="온보딩 3단계: 기기 연결 대기 화면",
+    role="초기 설정 3/3",
+    arrive="<code>child_info_screen.dart</code> 72줄 <code>context.push('/onboarding/device-connection')</code> → <code>router.dart</code> 79줄 <code>DeviceConnectionScreen()</code>에서 왔습니다.",
+    chunks=[
+        (1, 3, "Flutter 위젯, SVG 그림을 그리는 패키지, 화면 이동.", []),
+        (5, 6, "우리 위젯 둘. <code>PairingGlow</code>(은은한 확산광)와 진행 점.", []),
+        (8, 12, "문서 주석. 아직 BLE 페어링은 연결돼 있지 않아서 \"설정 완료\"를 누르면 곧바로 홈으로 간다고 적혀 있습니다.", []),
+        (13, 14, "<b>이 화면은 StatelessWidget.</b> 입력값도 로딩도 없고 서버 호출도 없어서 <code>ref</code>가 필요 없습니다. 앞 두 화면과의 차이입니다.", ["class"]),
+        (16, 17, "색 상수 둘.", []),
+        (19, 28, "화면 틀과 Column. 위의 두 화면과 같은 뼈대입니다.", ["build"]),
+        (29, 36, "뒤로가기 버튼. 쌓인 화면이 없으면 자녀 정보 화면으로 갑니다.", []),
+        (37, 51, "제목 \"기기 연결하기\"와 세 번째 점이 켜진 진행 표시(<code>activeIndex: 2</code>).", []),
+        (52, 52, "남는 공간의 3/7를 먹는 빈칸(<code>flex: 3</code>, 아래는 <code>flex: 4</code>). 그림을 세로 가운데보다 약간 위에 놓습니다.", ["layout"]),
+        (53, 61, "<b>기기 그림.</b> <code>SvgPicture.asset</code>이 <code>assets/images/device_icon.svg</code>를 143×149 크기로 그립니다. 그 바깥을 <code>PairingGlow</code>가 감싸서 은은한 원형 빛이 번지는 연출을 줍니다.", []),
+        (62, 62, "남는 공간을 먹는 빈칸. 버튼을 화면 아래로 밀어냅니다.", []),
+        (63, 75, "<b>\"설정 완료\" 버튼.</b> 누르면 <code>context.go('/')</code>로 홈 화면으로 <b>갈아치웁니다</b>. push가 아니라 go인 이유는 온보딩 3단계를 끝낸 사용자가 뒤로가기로 온보딩에 돌아오면 안 되기 때문입니다. 실제 기기 연결은 아직 하지 않습니다.", ["gopush"]),
+        (76, 83, "아래 여백과 괄호 닫기들.", []),
+    ],
+    next_hint="5줄 <code>pairing_glow.dart</code>의 <code>PairingGlow</code>를 Ctrl+클릭합니다.",
+))
+
+STOPS_CH.append(dict(
+    chapter=2,
+    file="lib/app/widgets/pairing_glow.dart",
+    title="번지는 빛 효과",
+    role="공용 연출 위젯",
+    arrive="<code>device_connection_screen.dart</code> 54줄 <code>PairingGlow(child: ...)</code>에서 왔습니다. 기기 탭의 \"기기 추가하기\" 화면도 같은 위젯을 씁니다.",
+    chunks=[
+        (1, 1, "Flutter 기본 위젯.", []),
+        (3, 8, "<b>다른 위젯을 감싸는 위젯.</b> 안에 넣을 위젯(<code>child</code>)을 받아서 그 뒤에 빛을 깔아줍니다. 두 화면이 똑같은 연출을 쓰려고 공용 폴더(<code>app/widgets</code>)로 뺐습니다.", ["class"]),
+        (9, 10, "브랜드 하늘색 상수.", []),
+        (12, 16, "<code>Stack</code>은 자식들을 <b>겹쳐서</b> 쌓습니다(Column이 위아래, Stack은 앞뒤). 맨 뒤 것이 먼저 그려지고 <code>alignment: center</code>로 모두 가운데에 맞춥니다.", ["build"]),
+        (17, 27, "<b>바깥 큰 원</b> 252×252. <code>RadialGradient</code>(중심에서 퍼지는 그라데이션)가 80%까지는 투명이다가 가장자리로 갈수록 하늘색(투명도 15%)이 됩니다. <code>withValues(alpha: 0.15)</code>가 투명도 조절입니다.", []),
+        (28, 38, "<b>안쪽 작은 원</b> 195×195. 같은 방식이고 68% 지점부터 색이 시작되며 더 진합니다(25%).", []),
+        (39, 43, "<b>맨 앞에 받아온 <code>child</code></b>(기기 그림)를 얹고 괄호를 닫습니다. 그래서 그림이 두 원 위에 보입니다. 2장 끝. 다음 장은 온보딩이 끝난 뒤 가는 홈 화면입니다.", []),
+    ],
+    next_hint="2장 끝. 3장에서 홈 화면(<code>home_screen.dart</code>)과 하단 탭, 기기 목록을 읽습니다.",
+))

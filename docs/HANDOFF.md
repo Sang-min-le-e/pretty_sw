@@ -15,7 +15,7 @@ flutter pub get
 
 브라우저로 바로 열어볼 파일 (`open` 명령은 macOS 기본 브라우저로 연다):
 ```bash
-open docs/code-tour/tour.html   # 코드 한 줄씩 따라 읽기 (1장: 앱 시작 → 로그인)
+open docs/code-tour/tour.html   # 코드 한 줄씩 따라 읽기 (1~5장: 앱 시작 → 로그인 → 온보딩 → 홈/기기 → 루틴 → 프로필)
 open docs/code-map.html         # 프로젝트 구조 한 장 요약
 ```
 같은 내용을 claude.ai에 로그인한 상태에서 링크로도 볼 수 있다(아래 4장).
@@ -34,7 +34,7 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 | 무엇 | 결과물 |
 |---|---|
 | 프론트엔드 전체 구조 분석 | `docs/ARCHITECTURE.md` (글), `docs/code-map.html` (그림) |
-| 코드 따라 읽기 가이드 1장 | `docs/code-tour/` — main.dart → 로그인 완료까지 14개 파일, 한 줄씩 해설 |
+| 코드 따라 읽기 가이드 1~5장 | `docs/code-tour/` — main.dart부터 프로필까지 54개 파일, 한 줄씩 해설 (2~5장은 `spec_ch2~5.py`) |
 | 서버 연결 상태 점검 | 로그인·내 정보·자녀 등록만 서버, 루틴·기기·템플릿·프로필 사진은 Hive(로컬) |
 | 백엔드 pull 내용 정리 | 아래 3장 |
 | 작업 방식 결정 | KHU AI Developer Blueprint 방식 + `feature` 브랜치 → PR → 본인이 merge (`docs/GIT_WORKFLOW.md`) |
@@ -57,10 +57,10 @@ open docs/code-map.html         # 프로젝트 구조 한 장 요약
 ## 5. 다음 할 일 (추천 순서)
 
 1. **이 `feature` 브랜치를 PR로 올려 merge하기.** 버튼 크기 수정과 이 문서들이 들어 있다. GIT_WORKFLOW의 흐름을 처음 연습하기에 좋다.
-2. **코드 따라 읽기 1장 읽기.** 막히는 줄은 "login_screen 46줄"처럼 파일과 줄 번호로 질문한다.
+2. **코드 따라 읽기 1~5장 읽기.** 막히는 줄은 "login_screen 46줄"처럼 파일과 줄 번호로 질문한다.
 3. **테스트 + CI 추가.** `test/routine_recurrence_test.dart`(순수 함수라 쉬움)와 `.github/workflows/ci.yml`(PR마다 `flutter analyze` + `flutter test`).
 4. **탈퇴 버튼을 `DELETE /users/me`에 연결.** `profile_screen.dart`, `user_settings_screen.dart`.
-5. **코드 따라 읽기 2장(홈/기기), 3장(루틴)** 만들기.
+5. **코드 따라 읽기에 빠진 화면 추가.** 기기 추가·상세·통계·와이파이 설정, 소셜 로그인 목업, 워치 연결은 아직 없다.
 
 ## 6. 알아둘 것
 
