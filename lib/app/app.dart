@@ -9,7 +9,7 @@ class RoutineApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: '루틴 앱',
+      title: 'TOMO',
       theme: appTheme,
       routerConfig: appRouter,
     );
