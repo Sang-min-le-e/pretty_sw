@@ -30,7 +30,7 @@ lib/
 ├── app/                       # 앱 전체에 걸친 설정
 │   ├── app.dart               # MaterialApp.router (테마 + 라우터 연결)
 │   ├── router.dart            # ★ 모든 화면 경로(URL) 목록. 화면 추가 시 반드시 여기 등록
-│   ├── theme.dart             # 큰 글씨·큰 버튼 기본 테마
+│   ├── theme.dart             # 큰 글씨 기본 테마 (버튼 최소 크기는 10/5에 제거)
 │   └── widgets/               # 여러 기능이 같이 쓰는 공용 위젯
 │       ├── bottom_nav_bar.dart    # 하단 탭바 (홈/루틴/기기/내 정보)
 │       ├── back_header.dart       # "‹ 제목" 상단 바
@@ -114,8 +114,8 @@ app.dart   MaterialApp.router(theme, appRouter)
 /splash    타이머 후 → context.go('/login')        (자동 로그인 없음: 항상 로그인 화면을 지난다)
    ▼
 /login     _submit():
-           1) POST /auth/login   → accessUuid를 Hive 'auth' 박스에 저장
-           2) GET  /users/me     → name 확인
+           POST /auth/login      → accessUuid를 Hive 'auth' 박스에 저장,
+                                   응답의 user.name 확인 (GET /users/me 불필요)
               ├─ name == null → /onboarding/guardian-info  (PATCH /users/me)
               │                   → /onboarding/child-info  (POST /children)
               │                   → /onboarding/device-connection (로컬, BLE 미연동)
@@ -154,7 +154,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 | POST | `/auth/login` | `AuthRepository.login` | 로그인 |
 | POST | `/auth/logout` | `AuthRepository.logout` | 내 정보, 사용자 설정 |
 | POST | `/auth/signup` | `AuthRepository.signup` | ✗ (회원가입 화면 없음) |
-| GET | `/users/me` | `UserRepository.getMe` | 로그인, 내 정보, 사용자 설정, 프로필 수정 |
+| GET | `/users/me` | `UserRepository.getMe` | 내 정보, 사용자 설정, 프로필 수정 |
 | PATCH | `/users/me` | `UserRepository.updateMe` | 온보딩 1, 프로필 수정 |
 | POST | `/children` | `ChildRepository.createChild` | 온보딩 2 |
 | GET | `/children` | `ChildRepository.getChildren` | ✗ |
@@ -267,11 +267,12 @@ app.dart   MaterialApp.router(theme, appRouter)
 | 미사용 API | `signup`, `getChildren` | 회원가입 화면·자녀 목록 화면 만들 때 사용 |
 | 삭제 기능 없음 | 루틴/기기/템플릿 저장소에 `delete`가 없다. 수정은 같은 id로 `put`해서 덮어쓴다. | 필요해지면 저장소에 `delete` 추가 후 Actions에서 invalidate |
 | 테스트 없음 | `test/` 폴더가 없다. | 순수 함수인 `routine_recurrence.dart`부터 단위 테스트 추가 추천 |
-| CLAUDE.md 일부 오래됨 | "api_client에 base URL 없음", "onboarding 박스" 서술은 현재 코드와 다르다. | 다음 세션에 갱신 |
 
 ---
 
 ## 10. 명령어
+
+> Git 작업 방식(feature 브랜치 → PR)은 `docs/GIT_WORKFLOW.md`, 최근 세션 이어받기는 `docs/HANDOFF.md`, 코드 한 줄씩 읽기는 `docs/code-tour/tour.html`을 본다.
 
 ```bash
 flutter pub get        # 의존성 설치
