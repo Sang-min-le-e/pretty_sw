@@ -55,7 +55,7 @@ class DevicesScreen extends ConsumerWidget {
                       _DeviceGridCard(
                         name: devices[i].name,
                         iconAsset: deviceIconAssetFor(i),
-                        onTap: () => context.push('/devices/${devices[i].name}'),
+                        onTap: () => context.push('/devices/${devices[i].deviceId}'),
                       ),
                     _AddDeviceGridCard(
                       onTap: () => context.push('/devices/add'),

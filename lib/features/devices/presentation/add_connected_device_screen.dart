@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
 import '../../home/presentation/widgets/device_overview.dart';
-import '../data/device_providers.dart';
 
 /// Figma: 예소 / "연결된 기기" 추가 흐름 (node-id 392:5243 / 392:5255 /
 /// 392:5275, "앱 초안 3" 프레임 안, 이름 없는 "iPhone 17 - 73/74/75"
@@ -88,11 +87,11 @@ class _AddConnectedDeviceScreenState extends ConsumerState<AddConnectedDeviceScr
                       )
                     : _PickDeviceStep(
                         candidates: _candidates,
-                        onPicked: (name) async {
-                          await ref.read(deviceActionsProvider).addDevice(name);
-                          if (!context.mounted) return;
+                        onPicked: (name) {
+                          // 다른 사람의 기기를 아이디로 찾아 연결하는 API가 아직 없다.
+                          // 예전처럼 가짜 기기를 만들면 서버 목록과 어긋나서 만들지 않는다.
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('기기를 연결했어요')),
+                            const SnackBar(content: Text('아직 지원하지 않는 기능이에요')),
                           );
                           context.pop();
                         },

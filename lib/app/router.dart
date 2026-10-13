@@ -10,6 +10,7 @@ import '../features/devices/presentation/device_detail_screen.dart';
 import '../features/devices/presentation/device_settings_screen.dart';
 import '../features/devices/presentation/device_stats_screen.dart';
 import '../features/devices/presentation/devices_screen.dart';
+import '../features/devices/presentation/widgets/device_route_scope.dart';
 import '../features/devices/presentation/wifi_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/onboarding/presentation/child_info_screen.dart';
@@ -173,30 +174,41 @@ final appRouter = GoRouter(
           path: 'add',
           builder: (context, state) => const AddDeviceScreen(),
         ),
-        // => '/devices/:name', 기기 카드를 누르면 도착하는 상세 관리 화면.
+        // => '/devices/:deviceId', 기기 카드를 누르면 도착하는 상세 관리 화면.
         GoRoute(
-          path: ':name',
-          builder: (context, state) => DeviceDetailScreen(
-            deviceOwnerName: state.pathParameters['name']!,
+          path: ':deviceId',
+          builder: (context, state) => DeviceRouteScope(
+            deviceId: state.pathParameters['deviceId']!,
+            builder: (context, device) => DeviceDetailScreen(
+              deviceId: device.deviceId,
+              deviceOwnerName: device.name,
+            ),
           ),
           routes: [
-            // => '/devices/:name/wifi', 상세 화면의 "연결됨" 줄을 누르면.
+            // => '/devices/:deviceId/wifi', 상세 화면의 "연결됨" 줄을 누르면.
             GoRoute(
               path: 'wifi',
               builder: (context, state) => const WifiSettingsScreen(),
             ),
-            // => '/devices/:name/settings', 상세 화면 우측 상단 설정 톱니바퀴.
+            // => '/devices/:deviceId/settings', 상세 화면 우측 상단 설정 톱니바퀴.
             GoRoute(
               path: 'settings',
-              builder: (context, state) => DeviceSettingsScreen(
-                deviceOwnerName: state.pathParameters['name']!,
+              builder: (context, state) => DeviceRouteScope(
+                deviceId: state.pathParameters['deviceId']!,
+                builder: (context, device) => DeviceSettingsScreen(
+                  deviceId: device.deviceId,
+                  deviceOwnerName: device.name,
+                ),
               ),
             ),
-            // => '/devices/:name/stats', 상세 화면의 "루틴 통계 보기" 카드.
+            // => '/devices/:deviceId/stats', 상세 화면의 "루틴 통계 보기" 카드.
             GoRoute(
               path: 'stats',
-              builder: (context, state) => DeviceStatsScreen(
-                deviceOwnerName: state.pathParameters['name']!,
+              builder: (context, state) => DeviceRouteScope(
+                deviceId: state.pathParameters['deviceId']!,
+                builder: (context, device) => DeviceStatsScreen(
+                  deviceOwnerName: device.name,
+                ),
               ),
             ),
           ],

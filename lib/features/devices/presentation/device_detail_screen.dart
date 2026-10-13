@@ -12,8 +12,13 @@ import '../../home/presentation/widgets/device_overview.dart';
 /// 페이지네이션 점만 빼면 홈 화면과 완전히 같은 레이아웃이라
 /// `widgets/device_overview.dart`의 공용 위젯을 그대로 재사용한다.
 class DeviceDetailScreen extends StatelessWidget {
-  const DeviceDetailScreen({super.key, required this.deviceOwnerName});
+  const DeviceDetailScreen({
+    super.key,
+    required this.deviceId,
+    required this.deviceOwnerName,
+  });
 
+  final int deviceId;
   final String deviceOwnerName;
 
   static const _bg = Color(0xFFF4F4F4);
@@ -32,7 +37,7 @@ class DeviceDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
                 child: _DetailTopBar(
                   onBack: () => context.pop(),
-                  onSettings: () => context.push('/devices/$deviceOwnerName/settings'),
+                  onSettings: () => context.push('/devices/$deviceId/settings'),
                 ),
               ),
               Padding(
@@ -55,7 +60,7 @@ class DeviceDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 38),
                       child: DeviceStatusList(
                         onWifiTap: () =>
-                            context.push('/devices/$deviceOwnerName/wifi'),
+                            context.push('/devices/$deviceId/wifi'),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -80,7 +85,7 @@ class DeviceDetailScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           _StatsEntryCard(
                             onTap: () =>
-                                context.push('/devices/$deviceOwnerName/stats'),
+                                context.push('/devices/$deviceId/stats'),
                           ),
                         ],
                       ),

@@ -1,30 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 
 /// Figma: 예소 / "8-5 기기 설정" (node-id 392:2304, "앱 초안 3" 프레임 안).
 /// 기기 상세 관리 화면 우측 상단 설정 톱니바퀴를 누르면 도착한다.
 ///
-/// 닉네임/메모는 지금 화면 안에서만 값이 바뀌고 저장되지 않는다 — 기기가
-/// 아직 Hive에 저장되는 실제 데이터가 아니라 홈/기기 탭에 하드코딩된
-/// 값이라(다른 팀의 기기 스펙 대기 중), 여기서 편집해도 반영할 데이터
-/// 저장소가 없다. "기기 백업하기"도 같은 이유로 아직 자리만 잡아뒀다.
-/// "기기 삭제하기"는 실제로 지울 데이터가 없어 확인 다이얼로그만 보여주고
-/// 확인하면 기기 목록으로 돌아간다.
-class DeviceSettingsScreen extends StatefulWidget {
-  const DeviceSettingsScreen({super.key, required this.deviceOwnerName});
+/// 닉네임은 "완료"를 누를 때 서버(`PATCH /devices/:id`)에 저장하고, "기기 삭제하기"는
+/// 확인 후 `DELETE /devices/:id`로 연결을 해제한다. 메모와 "기기 백업하기"는 서버에
+/// 대응하는 API가 없어서 아직 저장되지 않는다.
+class DeviceSettingsScreen extends ConsumerStatefulWidget {
+  const DeviceSettingsScreen({
+    super.key,
+    required this.deviceId,
+    required this.deviceOwnerName,
+  });
 
+  final int deviceId;
   final String deviceOwnerName;
 
   @override
-  State<DeviceSettingsScreen> createState() => _DeviceSettingsScreenState();
+  ConsumerState<DeviceSettingsScreen> createState() => _DeviceSettingsScreenState();
 }
 
-class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
+class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
   late final _nicknameController = TextEditingController(text: widget.deviceOwnerName);
   final _memoController = TextEditingController();
+  bool _busy = false;
 
   @override
   void dispose() {
@@ -55,8 +61,37 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
         ],
       ),
     );
-    if (confirmed == true && mounted) {
-      context.go('/devices');
+    if (confirmed != true || !mounted) return;
+    await _run(() async {
+      await ref.read(deviceActionsProvider).deleteDevice(widget.deviceId);
+      if (mounted) context.go('/devices');
+    });
+  }
+
+  Future<void> _save() async {
+    final nickname = _nicknameController.text.trim();
+    if (nickname.isEmpty || nickname == widget.deviceOwnerName) {
+      context.pop();
+      return;
+    }
+    await _run(() async {
+      await ref.read(deviceActionsProvider).renameDevice(widget.deviceId, nickname);
+      if (mounted) context.pop();
+    });
+  }
+
+  /// 서버 호출 한 건을 돌리는 동안 버튼을 잠그고, 실패하면 서버 메시지를 보여 준다.
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -173,14 +208,14 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
               _SettingsRow(
                 label: '기기 삭제하기',
                 danger: true,
-                onTap: _confirmDelete,
+                onTap: _busy ? () {} : _confirmDelete,
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => context.pop(),
+                  onPressed: _busy ? null : _save,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kDeviceOverviewBrandBlue,
                     foregroundColor: Colors.white,

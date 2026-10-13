@@ -1,21 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/pairing_glow.dart';
+import '../../../core/network/api_exception.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../../watch_connection/data/watch_connection_providers.dart';
 import '../data/device_providers.dart';
 import 'widgets/labeled_field_row.dart';
 
 /// Figma: 예소 / "8-6 기기 추가하기" (node-id 405:6823, 405:6897, "앱 초안
 /// 3" 프레임 안). "기기 관리" 그리드의 점선 카드를 누르면 도착한다.
 ///
-/// 두 단계로 구성된다: (1) 기기를 찾는 동안 보여주는 대기 화면, (2) 새
-/// 기기가 연결할 WIFI 정보를 입력하는 화면. 실제 BLE 스캔/페어링은 아직
-/// `core/ble/ble_service.dart`에 GATT 서비스 UUID가 없어서 연결돼 있지
-/// 않다(다른 팀의 스펙 대기 중, CLAUDE.md 참고) — 그래서 1단계는 몇 초
-/// 기다리는 척만 하고 바로 "다음"을 누를 수 있게 해둔다.
+/// 두 단계로 구성된다: (1) 주변 BLE 기기를 찾아 하나 고르는 화면, (2) 기기 이름과
+/// 기기가 붙을 WIFI 정보를 입력하는 화면. "추가 완료"를 누르면 서버에서 페어링 코드를
+/// 받아 BLE로 기기에 넘기고, 기기가 서버에 등록돼 `ACTIVE`가 될 때까지 기다린다
+/// (`DeviceActions.pairNewDevice`).
 class AddDeviceScreen extends ConsumerStatefulWidget {
   const AddDeviceScreen({super.key});
 
@@ -25,16 +29,67 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
 
 class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   int _step = 0;
+  DiscoveredDevice? _selected;
+  bool _pairing = false;
+  bool _disposed = false;
+  String _progress = '';
   final _nameController = TextEditingController();
   final _wifiIdController = TextEditingController(text: 'U+Net1024');
   final _wifiPwController = TextEditingController();
 
   @override
   void dispose() {
+    _disposed = true;
     _nameController.dispose();
     _wifiIdController.dispose();
     _wifiPwController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pair() async {
+    final device = _selected;
+    final name = _nameController.text.trim();
+    final ssid = _wifiIdController.text.trim();
+    if (device == null) return;
+    if (name.isEmpty || ssid.isEmpty) {
+      _snack('기기 이름과 WIFI 이름을 입력해주세요');
+      return;
+    }
+    setState(() {
+      _pairing = true;
+      _progress = '';
+    });
+    try {
+      await ref.read(deviceActionsProvider).pairNewDevice(
+            bleDeviceId: device.id,
+            nickname: name,
+            ssid: ssid,
+            password: _wifiPwController.text,
+            isCancelled: () => _disposed,
+            onStep: (step) {
+              if (!_disposed) setState(() => _progress = step);
+            },
+          );
+      if (!mounted) return;
+      _snack('기기를 연결했어요');
+      context.go('/devices');
+    } on ApiException catch (e) {
+      _fail(e.message);
+    } on TimeoutException {
+      _fail('기기가 시간 안에 연결되지 않았어요. 기기 전원과 WIFI 정보를 확인하고 다시 시도해주세요.');
+    } catch (e) {
+      _fail('기기 연결에 실패했어요: $e');
+    }
+  }
+
+  void _fail(String message) {
+    if (_disposed) return;
+    setState(() => _pairing = false);
+    _snack(message);
+  }
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -52,6 +107,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 children: [
                   InkResponse(
                     onTap: () {
+                      if (_pairing) return;
                       if (_step == 1) {
                         setState(() => _step = 0);
                       } else {
@@ -87,22 +143,17 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 ],
               ),
               Expanded(
-                child: _step == 0 ? _ScanningStep(onNext: () => setState(() => _step = 1)) : _WifiStep(
+                child: _step == 0 ? _ScanningStep(
+                  selectedId: _selected?.id,
+                  onSelect: (d) => setState(() => _selected = d),
+                  onNext: _selected == null ? null : () => setState(() => _step = 1),
+                ) : _WifiStep(
+                  pairing: _pairing,
+                  progress: _progress,
                   nameController: _nameController,
                   idController: _wifiIdController,
                   pwController: _wifiPwController,
-                  onDone: () async {
-                    final name = _nameController.text.trim();
-                    if (name.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('기기 이름을 입력해주세요')),
-                      );
-                      return;
-                    }
-                    await ref.read(deviceActionsProvider).addDevice(name);
-                    if (!context.mounted) return;
-                    context.go('/devices');
-                  },
+                  onDone: _pair,
                 ),
               ),
             ],
@@ -113,16 +164,46 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   }
 }
 
-class _ScanningStep extends StatelessWidget {
-  const _ScanningStep({required this.onNext});
+class _ScanningStep extends ConsumerStatefulWidget {
+  const _ScanningStep({
+    required this.selectedId,
+    required this.onSelect,
+    required this.onNext,
+  });
 
-  final VoidCallback onNext;
+  final String? selectedId;
+  final ValueChanged<DiscoveredDevice> onSelect;
+  final VoidCallback? onNext;
+
+  @override
+  ConsumerState<_ScanningStep> createState() => _ScanningStepState();
+}
+
+class _ScanningStepState extends ConsumerState<_ScanningStep> {
+  final _found = <String, DiscoveredDevice>{};
+  StreamSubscription<DiscoveredDevice>? _sub;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = ref.read(bleServiceProvider).scanForWatch().listen(
+      (d) => setState(() => _found[d.id] = d),
+      onError: (Object e) => setState(() => _error = e),
+    );
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Spacer(flex: 3),
+        const SizedBox(height: 24),
         Center(
           child: PairingGlow(
             child: SizedBox(
@@ -132,12 +213,37 @@ class _ScanningStep extends StatelessWidget {
             ),
           ),
         ),
-        const Spacer(flex: 4),
+        const SizedBox(height: 24),
+        Text(
+          _error != null
+              ? '블루투스를 사용할 수 없어요. 설정에서 블루투스 권한을 확인해주세요.'
+              : _found.isEmpty
+                  ? '주변 기기를 찾는 중이에요...'
+                  : '연결할 기기를 선택해주세요',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: kDeviceOverviewLabelColor, fontSize: 15),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: ListView(
+            children: [
+              for (final d in _found.values)
+                ListTile(
+                  title: Text(d.name.isEmpty ? '(이름 없음)' : d.name),
+                  subtitle: Text(d.id),
+                  trailing: d.id == widget.selectedId
+                      ? const Icon(Icons.check_circle, color: kDeviceOverviewBrandBlue)
+                      : null,
+                  onTap: () => widget.onSelect(d),
+                ),
+            ],
+          ),
+        ),
         SizedBox(
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: onNext,
+            onPressed: widget.onNext,
             style: ElevatedButton.styleFrom(
               backgroundColor: kDeviceOverviewBrandBlue,
               foregroundColor: Colors.white,
@@ -158,12 +264,16 @@ class _WifiStep extends StatelessWidget {
     required this.nameController,
     required this.idController,
     required this.pwController,
+    required this.pairing,
+    required this.progress,
     required this.onDone,
   });
 
   final TextEditingController nameController;
   final TextEditingController idController;
   final TextEditingController pwController;
+  final bool pairing;
+  final String progress;
   final VoidCallback onDone;
 
   @override
@@ -172,8 +282,8 @@ class _WifiStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 24),
-        // 실제 페어링/텔레메트리는 없지만, 홈 화면과 기기 관리 화면이
-        // 이 기기를 누구 것으로 표시할지는 필요해서 이름을 직접 받는다.
+        // 홈 화면과 기기 관리 화면이 이 기기를 누구 것으로 표시할지 정하는
+        // 별칭(서버의 nickname)이다.
         LabeledFieldRow(
           label: '기기 이름',
           controller: nameController,
@@ -189,11 +299,21 @@ class _WifiStep extends StatelessWidget {
           obscure: true,
         ),
         const Spacer(),
+        if (pairing) ...[
+          const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 12),
+          Text(
+            progress,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: kDeviceOverviewLabelColor, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+        ],
         SizedBox(
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: onDone,
+            onPressed: pairing ? null : onDone,
             style: ElevatedButton.styleFrom(
               backgroundColor: kDeviceOverviewBrandBlue,
               foregroundColor: Colors.white,

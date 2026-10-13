@@ -1,41 +1,72 @@
-/// 이 가디언 계정에 연결된 자녀 기기 하나를 나타내는 도메인 모델.
+/// 서버가 알고 있는 자녀 기기 하나(`docs/API.md` 7장 `GET /children/:childId/devices`).
 ///
-/// 홈 화면의 "연결된 기기" 카드(`ConnectedDevicesCard`, node 392:5304)와
-/// "연결된 기기" 화면(node 392:5220)이 보여주는 목록의 원소다. 실제 BLE
-/// 페어링이 아직 연결돼 있지 않아서([core/ble/ble_service.dart] 참고),
-/// 지금은 "기기 추가하기"/"연결 기기 추가" 흐름에서 이름만 받아 저장한다.
+/// 홈 화면의 "연결된 기기" 카드와 "연결된 기기" 화면이 보여주는 목록의 원소다.
 class ConnectedDevice {
   const ConnectedDevice({
-    required this.id,
+    required this.deviceId,
     required this.name,
-    required this.connectedAt,
+    required this.status,
+    this.battery,
+    this.firmwareVersion,
+    this.lastSyncedAt,
+    this.pairedAt,
   });
 
-  final String id;
+  final int deviceId;
 
-  /// 기기 주인의 짧은 이름(예: "지예"). 화면마다 접미사를 다르게 붙여서
-  /// 보여준다 — 홈/상세 화면 제목은 "지예의 기기", 목록 한 줄은
-  /// "지예님의 기기"처럼. "기기 추가하기"(BLE 페어링) 흐름에서 이 이름을
-  /// 직접 입력받는다.
+  /// 서버의 `nickname`. 화면마다 접미사를 다르게 붙여서 보여준다 — 홈/상세
+  /// 화면 제목은 "지예의 기기", 목록 한 줄은 "지예님의 기기"처럼.
   final String name;
 
-  /// 연결(등록)된 시각. 목록을 등록 순서대로 보여줄 때와, 아이콘/점 색을
-  /// 순서대로 순환시켜 배정할 때(`deviceAccentFor` 참고) 함께 쓰인다.
-  final DateTime connectedAt;
+  /// `PENDING`(페어링 코드만 발급, 기기가 아직 claim 안 함) 또는 `ACTIVE`.
+  final String status;
 
-  factory ConnectedDevice.fromMap(Map<String, dynamic> map) {
+  /// `PENDING`이면 아래 값들은 전부 `null`이다.
+  final int? battery;
+  final String? firmwareVersion;
+  final DateTime? lastSyncedAt;
+  final DateTime? pairedAt;
+
+  bool get isActive => status == 'ACTIVE';
+
+  factory ConnectedDevice.fromJson(Map<String, dynamic> json) {
+    DateTime? time(String key) {
+      final raw = json[key] as String?;
+      return raw == null ? null : DateTime.parse(raw);
+    }
+
     return ConnectedDevice(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      connectedAt: DateTime.parse(map['connectedAt'] as String),
+      deviceId: (json['deviceId'] as num).toInt(),
+      name: json['nickname'] as String? ?? '',
+      status: json['status'] as String,
+      battery: (json['battery'] as num?)?.toInt(),
+      firmwareVersion: json['firmwareVersion'] as String?,
+      lastSyncedAt: time('lastSyncedAt'),
+      pairedAt: time('pairedAt'),
     );
   }
+}
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'connectedAt': connectedAt.toIso8601String(),
-    };
+/// `POST /devices/pairing` 응답. 앱은 [pairingCode]를 BLE로 기기에 넘기고,
+/// [deviceId]로 `ACTIVE`가 될 때까지 폴링한다.
+class PairingTicket {
+  const PairingTicket({
+    required this.deviceId,
+    required this.pairingCode,
+    required this.expiresAt,
+  });
+
+  final int deviceId;
+
+  /// 숫자 10자리 **문자열**(앞자리 0 유지).
+  final String pairingCode;
+  final DateTime expiresAt;
+
+  factory PairingTicket.fromJson(Map<String, dynamic> json) {
+    return PairingTicket(
+      deviceId: (json['deviceId'] as num).toInt(),
+      pairingCode: json['pairingCode'] as String,
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
+    );
   }
 }

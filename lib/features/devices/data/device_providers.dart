@@ -1,25 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart'; // StateProvider (riverpod 3부터 별도 export)
 
-import '../../../core/storage/local_storage_service.dart';
+import '../../../core/ble/watch_gatt.dart';
+import '../../../core/network/api_client.dart';
+import '../../auth/data/auth_providers.dart';
+import '../../children/data/child_providers.dart';
+import '../../watch_connection/data/watch_connection_providers.dart';
 import '../domain/connected_device.dart';
 import 'device_repository.dart';
 
-// 루틴 기능의 `localStorageServiceProvider`와 별개의 provider 인스턴스지만,
-// `LocalStorageService`가 상태 없이 `Hive.openBox`만 감싸는 얇은 래퍼라
-// 두 인스턴스가 같은 박스를 열어도 문제가 없다.
-final _localStorageServiceProvider = Provider((ref) => LocalStorageService());
-
 final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
-  return LocalDeviceRepository(ref.watch(_localStorageServiceProvider));
+  return ApiDeviceRepository(ref.watch(apiClientProvider));
 });
 
-/// 연결된 기기 전체 목록(등록 순서). 비어 있으면 "연결된 기기 없음" 상태를
-/// 뜻한다 — 홈 화면 `ConnectedDevicesCard`가 이 provider로 빈 상태/목록
-/// 상태를 가른다.
+/// 지금 선택된 자녀의 **연결 완료(`ACTIVE`)** 기기 목록(`deviceId` 순). 비어 있으면
+/// "연결된 기기 없음" 상태를 뜻한다 — 홈 화면 `ConnectedDevicesCard`가 이 provider로
+/// 빈 상태/목록 상태를 가른다. 아직 claim 전(`PENDING`)인 기기는 연결된 게 아니라서
+/// 뺀다. 자녀를 바꾸면 그 자녀의 목록으로 다시 받아온다.
 final deviceListProvider = FutureProvider<List<ConnectedDevice>>((ref) async {
-  final devices = await ref.watch(deviceRepositoryProvider).getDevices();
-  return devices..sort((a, b) => a.connectedAt.compareTo(b.connectedAt));
+  final child = ref.watch(currentChildProvider);
+  if (child == null) return const [];
+  final devices = await ref.watch(deviceRepositoryProvider).getDevices(child.childId);
+  return devices.where((d) => d.isActive).toList()
+    ..sort((a, b) => a.deviceId.compareTo(b.deviceId));
 });
 
 /// 홈 화면 캐러셀에서 지금 보고 있는 기기의 [deviceListProvider] 안
@@ -35,13 +40,73 @@ class DeviceActions {
 
   final Ref _ref;
 
-  /// [name]으로 새 기기를 하나 등록한다. "기기 추가하기"(내 기기 페어링)와
-  /// "연결 기기 추가"(가족 구성원 기기 추가) 두 흐름이 모두 이걸 부른다.
-  Future<void> addDevice(String name) async {
-    final id = DateTime.now().microsecondsSinceEpoch.toString();
-    await _ref.read(deviceRepositoryProvider).addDevice(
-          ConnectedDevice(id: id, name: name, connectedAt: DateTime.now()),
-        );
+  /// 서버가 정한 페어링 코드 만료(10분). 이 안에 `ACTIVE`가 안 되면 실패로 본다.
+  static const pairingTimeout = Duration(minutes: 10);
+  static const pollInterval = Duration(seconds: 2);
+
+  /// 새 기기를 페어링한다.
+  ///
+  /// 1) 서버에서 페어링 코드 발급 → 2) BLE로 기기에 와이파이/코드/서버 주소 전달 →
+  /// 3) 기기가 와이파이에 붙어 서버에 `claim`할 때까지 `GET /devices/:id` 폴링
+  /// (`PENDING → ACTIVE`). 중간에 실패하면 남은 `PENDING` 기기를 서버에서 지운다.
+  ///
+  /// [isCancelled]가 `true`를 돌려주면(화면을 벗어남 등) 폴링을 멈추고 예외를 던진다.
+  Future<void> pairNewDevice({
+    required String bleDeviceId,
+    required String nickname,
+    required String ssid,
+    required String password,
+    bool Function()? isCancelled,
+    void Function(String step)? onStep,
+  }) async {
+    final child = _ref.read(currentChildProvider);
+    if (child == null) throw StateError('선택된 자녀가 없어요.');
+
+    final repository = _ref.read(deviceRepositoryProvider);
+
+    onStep?.call('페어링 코드를 만드는 중');
+    final ticket = await repository.createPairing(childId: child.childId, nickname: nickname);
+
+    try {
+      onStep?.call('기기에 와이파이 정보를 보내는 중');
+      await _ref.read(bleServiceProvider).provisionWifi(
+            deviceId: bleDeviceId,
+            payload: WifiProvisioningPayload(
+              ssid: ssid,
+              password: password,
+              pairingCode: ticket.pairingCode,
+              serverUrl: resolveServerOrigin(),
+            ),
+          );
+
+      onStep?.call('기기가 서버에 연결되길 기다리는 중');
+      final deadline = DateTime.now().add(pairingTimeout);
+      while (true) {
+        if (isCancelled?.call() ?? false) throw StateError('페어링이 취소됐어요.');
+        final device = await repository.getDevice(ticket.deviceId);
+        if (device.isActive) break;
+        if (DateTime.now().isAfter(deadline)) {
+          throw TimeoutException('기기가 시간 안에 연결되지 않았어요.', pairingTimeout);
+        }
+        await Future<void>.delayed(pollInterval);
+      }
+    } catch (_) {
+      try {
+        await repository.deleteDevice(ticket.deviceId); // 남은 PENDING 정리
+      } catch (_) {}
+      rethrow;
+    } finally {
+      _ref.invalidate(deviceListProvider);
+    }
+  }
+
+  Future<void> renameDevice(int deviceId, String nickname) async {
+    await _ref.read(deviceRepositoryProvider).renameDevice(deviceId, nickname);
+    _ref.invalidate(deviceListProvider);
+  }
+
+  Future<void> deleteDevice(int deviceId) async {
+    await _ref.read(deviceRepositoryProvider).deleteDevice(deviceId);
     _ref.invalidate(deviceListProvider);
   }
 }

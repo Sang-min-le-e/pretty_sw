@@ -22,6 +22,10 @@ String resolveApiBaseUrl() {
   return 'http://localhost:8080/api/v1';
 }
 
+/// [resolveApiBaseUrl]에서 경로(`/api/v1`)를 뺀 서버 주소. 기기가 `claim`/`sync`
+/// (`/device-api/v1/...`)를 보낼 때 앱이 BLE로 넘겨 준다.
+String resolveServerOrigin() => Uri.parse(resolveApiBaseUrl()).origin;
+
 /// 백엔드 API 베이스 클라이언트.
 ///
 /// [getAccessUuid]를 넘기면 모든 요청에 `X-Access-Uuid` 헤더(앱용 인증,

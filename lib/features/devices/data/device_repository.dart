@@ -1,34 +1,84 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:dio/dio.dart';
 
-import '../../../core/storage/local_storage_service.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../domain/connected_device.dart';
 
 abstract class DeviceRepository {
-  Future<List<ConnectedDevice>> getDevices();
-  Future<void> addDevice(ConnectedDevice device);
+  /// `GET /children/:childId/devices`. `PENDING` 기기도 함께 내려온다.
+  Future<List<ConnectedDevice>> getDevices(int childId);
+
+  /// `GET /devices/:deviceId` — 페어링 폴링용.
+  Future<ConnectedDevice> getDevice(int deviceId);
+
+  /// `POST /devices/pairing` — 페어링 코드 발급.
+  Future<PairingTicket> createPairing({required int childId, required String nickname});
+
+  /// `PATCH /devices/:deviceId` — 별칭 변경.
+  Future<void> renameDevice(int deviceId, String nickname);
+
+  /// `DELETE /devices/:deviceId` — 연결 해제(서버는 soft delete).
+  Future<void> deleteDevice(int deviceId);
 }
 
-/// Hive 기반 로컬 구현체. 실제 기기 페어링(BLE)이 붙기 전까지는, "기기
-/// 추가하기" 흐름들이 이걸로 연결된 기기 목록을 흉내 낸다.
-class LocalDeviceRepository implements DeviceRepository {
-  LocalDeviceRepository(this._storage);
+class ApiDeviceRepository implements DeviceRepository {
+  ApiDeviceRepository(this._apiClient);
 
-  static const _boxName = 'devices';
-  final LocalStorageService _storage;
-
-  Future<Box<Map>> get _box => _storage.openBox(_boxName);
+  final ApiClient _apiClient;
 
   @override
-  Future<List<ConnectedDevice>> getDevices() async {
-    final box = await _box;
-    return box.values
-        .map((raw) => ConnectedDevice.fromMap(Map<String, dynamic>.from(raw)))
-        .toList();
+  Future<List<ConnectedDevice>> getDevices(int childId) async {
+    try {
+      final response = await _apiClient.dio.get('/children/$childId/devices');
+      return (response.data['data'] as List)
+          .map((raw) => ConnectedDevice.fromJson(raw as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
   }
 
   @override
-  Future<void> addDevice(ConnectedDevice device) async {
-    final box = await _box;
-    await box.put(device.id, device.toMap());
+  Future<ConnectedDevice> getDevice(int deviceId) async {
+    try {
+      final response = await _apiClient.dio.get('/devices/$deviceId');
+      return ConnectedDevice.fromJson(response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
+  }
+
+  @override
+  Future<PairingTicket> createPairing({
+    required int childId,
+    required String nickname,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        '/devices/pairing',
+        data: {'childId': childId, 'nickname': nickname},
+      );
+      return PairingTicket.fromJson(response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
+  }
+
+  @override
+  Future<void> renameDevice(int deviceId, String nickname) async {
+    try {
+      await _apiClient.dio.patch('/devices/$deviceId', data: {'nickname': nickname});
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteDevice(int deviceId) async {
+    try {
+      await _apiClient.dio.delete('/devices/$deviceId');
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
   }
 }
