@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 /// Figma: 예소 / 소셜 로그인 화면 (node-id 392:5746, "앱 초안 3" 프레임 안,
@@ -24,7 +23,7 @@ class LoginSocialScreen extends StatelessWidget {
         child: Column(
           children: [
             const Spacer(flex: 3),
-            SizedBox(width: 140, height: 155, child: SvgPicture.asset('assets/images/splash_logo.svg')),
+            Image.asset('assets/images/splash_logo_tomo.png', width: 200, height: 73),
             const Spacer(flex: 3),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),

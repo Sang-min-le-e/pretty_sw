@@ -4,6 +4,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/storage/local_storage_service.dart';
 import '../../children/data/child_providers.dart';
 import '../../devices/data/device_providers.dart';
+import '../../devices/data/wifi_credentials.dart';
 import '../../notifications/data/notification_providers.dart';
 import '../../profile/data/avatar_providers.dart';
 import '../../routine/data/routine_providers.dart';
@@ -42,6 +43,7 @@ class AccountActions {
   Future<void> _wipeLocalData() async {
     await _ref.read(avatarActionsProvider).deleteAvatarFile();
     await LocalStorageService().deleteAllBoxes();
+    await _ref.read(wifiCredentialsStoreProvider).clear();
 
     _ref.invalidate(currentUserProvider);
     _ref.invalidate(childListProvider);
@@ -49,6 +51,7 @@ class AccountActions {
     _ref.invalidate(routineCalendarProvider);
     _ref.invalidate(routineTemplateListProvider);
     _ref.invalidate(deviceListProvider);
+    _ref.invalidate(wifiCredentialsProvider);
     _ref.invalidate(selectedDeviceIndexProvider);
     _ref.invalidate(avatarPathProvider);
     _ref.invalidate(notificationListProvider);

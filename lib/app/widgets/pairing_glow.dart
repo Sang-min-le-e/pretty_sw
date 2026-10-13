@@ -7,7 +7,7 @@ class PairingGlow extends StatelessWidget {
   const PairingGlow({super.key, required this.child});
 
   final Widget child;
-  static const _brandBlue = Color(0xFF4ABEFF);
+  static const _brandBlue = Color(0xFF99B6FF);
 
   @override
   Widget build(BuildContext context) {

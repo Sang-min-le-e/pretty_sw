@@ -5,11 +5,20 @@ import 'package:flutter_svg/flutter_svg.dart';
 /// 끝에 붙는 위젯(설정 톱니바퀴 등) 하나로 구성된다 — 루틴/기기/내 정보
 /// 쪽 여러 화면이 전부 이 모양을 반복해서 쓰길래 공용 위젯으로 뺐다.
 class BackHeader extends StatelessWidget {
-  const BackHeader({super.key, required this.title, required this.onBack, this.trailing});
+  const BackHeader({
+    super.key,
+    required this.title,
+    required this.onBack,
+    this.trailing,
+    this.chevronColor = _labelColor,
+  });
 
   final String title;
   final VoidCallback onBack;
   final Widget? trailing;
+
+  /// 뒤로가기 화살표 색. 제목 색(#505050)과 다르게 쓰는 화면(온보딩)용.
+  final Color chevronColor;
 
   static const _labelColor = Color(0xFF505050);
 
@@ -30,7 +39,7 @@ class BackHeader extends StatelessWidget {
                 'assets/images/home_chevron_prev.svg',
                 width: 14,
                 height: 8,
-                colorFilter: const ColorFilter.mode(_labelColor, BlendMode.srcIn),
+                colorFilter: ColorFilter.mode(chevronColor, BlendMode.srcIn),
               ),
             ),
           ),

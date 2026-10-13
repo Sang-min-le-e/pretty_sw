@@ -49,7 +49,7 @@ class AddRoutineScreen extends ConsumerStatefulWidget {
 class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   static const _labelColor = Color(0xFF505050);
   static const _placeholderColor = Color(0xFFA3A3A3);
-  static const _brandBlue = Color(0xFF4ABEFF);
+  static const _brandBlue = Color(0xFF99B6FF);
 
   static const _tabs = ['일반', '기간', '반복', '다중'];
   static const _weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];

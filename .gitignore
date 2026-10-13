@@ -49,3 +49,4 @@ app.*.map.json
 
 # Claude Code project notes (local only, not shared with the team)
 CLAUDE.md
+.test-account.local

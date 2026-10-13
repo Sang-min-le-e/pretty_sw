@@ -97,7 +97,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                           width: 26,
                           height: 26,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF4ABEFF),
+                            color: Color(0xFF99B6FF),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.add, color: Colors.white, size: 18),
@@ -132,7 +132,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4ABEFF),
+                    backgroundColor: const Color(0xFF99B6FF),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: const StadiumBorder(),

@@ -40,7 +40,7 @@ class _ProgressRingPainter extends CustomPainter {
   final double ratio;
 
   static const _trackColor = Color(0xFFEAEAEA);
-  static const _progressColor = Color(0xFF4ABEFF);
+  static const _progressColor = Color(0xFF99B6FF);
   static const _strokeWidth = 18.0;
 
   @override

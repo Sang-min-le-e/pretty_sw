@@ -179,7 +179,7 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
                       child: ElevatedButton(
                         onPressed: _saving ? null : () => _save(routine),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4ABEFF),
+                          backgroundColor: const Color(0xFF99B6FF),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: const StadiumBorder(),

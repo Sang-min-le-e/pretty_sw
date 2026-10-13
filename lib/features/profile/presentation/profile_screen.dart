@@ -94,7 +94,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   SettingsChevronRow(
                     label: '언어',
                     value: '한국어',
-                    valueColor: const Color(0xFF4ABEFF),
+                    valueColor: const Color(0xFF99B6FF),
                     onTap: () => context.push('/profile/language'),
                   ),
                   SettingsSwitchRow(

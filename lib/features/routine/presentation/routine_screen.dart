@@ -411,7 +411,7 @@ class _CalendarDayCell extends StatelessWidget {
 
   static const _sundayColor = Color(0xFFE71A1A);
   static const _saturdayColor = Color(0xFF5596FF);
-  static const _selectedFill = Color(0xFF4ABEFF);
+  static const _selectedFill = Color(0xFF99B6FF);
   static const _badgeFill = Color(0xFFEAEAEA);
 
   @override

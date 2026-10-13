@@ -15,7 +15,7 @@ import '../../../routine/data/routine_providers.dart';
 const kDeviceOverviewLabelColor = Color(0xFF505050); // 진한 글자색(제목류)
 const kDeviceOverviewStatusColor = Color(0xFF7A7A7A); // 옅은 글자색(상태 목록)
 const kDeviceOverviewCaptionColor = Color(0xFF7F7F7F); // 옅은 글자색(카드 라벨)
-const kDeviceOverviewBrandBlue = Color(0xFF4ABEFF);
+const kDeviceOverviewBrandBlue = Color(0xFF99B6FF);
 
 /// `SvgPicture.asset(...)` 한 줄을 매번 반복해서 쓰지 않으려고 만든
 /// 아주 얇은 래퍼(wrapper) 위젯.

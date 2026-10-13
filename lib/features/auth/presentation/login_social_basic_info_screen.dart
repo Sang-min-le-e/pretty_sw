@@ -73,7 +73,7 @@ class _LoginSocialBasicInfoScreenState extends State<LoginSocialBasicInfoScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4ABEFF),
+                    backgroundColor: const Color(0xFF99B6FF),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: const StadiumBorder(),

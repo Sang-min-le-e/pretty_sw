@@ -25,7 +25,7 @@ class BottomNavBar extends StatelessWidget {
 
   // 아이콘 색상: 비활성일 때 회색, 활성일 때 브랜드 블루.
   static const _inactiveColor = Color(0xFFD9D9D9);
-  static const _brandBlue = Color(0xFF4ABEFF);
+  static const _brandBlue = Color(0xFF99B6FF);
 
   // 탭바 뒤에 깔리는 반투명 흰색 알약(pill) 모양 배경 색.
   static const _pillColor = Color(0xA3FFFFFF);
@@ -114,6 +114,9 @@ class _HomePill extends StatelessWidget {
 }
 
 /// "루틴 · 기기 · 내 정보" 3개 탭을 한 줄에 담는 긴 알약(캡슐) 모양 배경.
+///
+/// 아이콘 간격이 균등하지 않아서(Figma: 아이콘 가운데가 캡슐 왼쪽에서
+/// 42.5 / 106.5 / 164.5) spaceEvenly 대신 Figma 좌표 그대로 Stack에 놓는다.
 class _GroupPill extends StatelessWidget {
   const _GroupPill({required this.currentIndex, required this.onTap});
 
@@ -122,6 +125,12 @@ class _GroupPill extends StatelessWidget {
   /// 부모(BottomNavBar)가 넘겨준 탭 전환 콜백. 몇 번째 아이콘을 눌렀는지만
   /// 알려주면 부모 쪽에서 실제 이동 로직을 처리한다.
   final void Function(int index) onTap;
+
+  static const _tabs = [
+    (index: 1, asset: 'assets/images/home_nav_calendar.svg', centerX: 42.5, w: 27.0, h: 31.0),
+    (index: 2, asset: 'assets/images/home_nav_device.svg', centerX: 106.5, w: 28.0, h: 28.0),
+    (index: 3, asset: 'assets/images/home_nav_person.svg', centerX: 164.5, w: 28.0, h: 28.0),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -134,34 +143,21 @@ class _GroupPill extends StatelessWidget {
         // 되도록 한다.
         borderRadius: BorderRadius.circular(30),
       ),
-      child: Row(
-        // 3개 아이콘을 캡슐 안에서 균등한 간격으로 배치한다.
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Stack(
         children: [
-          // 1번 탭: 루틴(달력) 화면
-          _NavIconButton(
-            asset: 'assets/images/home_nav_calendar.svg',
-            width: 27,
-            height: 31,
-            active: currentIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          // 2번 탭: 기기 화면
-          _NavIconButton(
-            asset: 'assets/images/home_nav_device.svg',
-            width: 28,
-            height: 28,
-            active: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
-          // 3번 탭: 내 정보(프로필) 화면
-          _NavIconButton(
-            asset: 'assets/images/home_nav_person.svg',
-            width: 28,
-            height: 28,
-            active: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
+          for (final tab in _tabs)
+            Positioned(
+              left: tab.centerX - _NavIconButton.highlightWidth / 2,
+              top: (59 - _NavIconButton.highlightHeight) / 2,
+              child: _NavIconButton(
+                asset: tab.asset,
+                width: tab.w,
+                height: tab.h,
+                active: currentIndex == tab.index,
+                showHighlight: true,
+                onTap: () => onTap(tab.index),
+              ),
+            ),
         ],
       ),
     );
@@ -181,7 +177,12 @@ class _NavIconButton extends StatelessWidget {
     required this.height,
     required this.active,
     required this.onTap,
+    this.showHighlight = false,
   });
+
+  /// 눌린 탭 뒤에 깔리는 회색 알약의 크기(Figma: 77x52, 검정 5%, 완전 둥근 모양).
+  static const highlightWidth = 77.0;
+  static const highlightHeight = 52.0;
 
   final String asset;
   final double width;
@@ -189,36 +190,46 @@ class _NavIconButton extends StatelessWidget {
 
   /// true면 이 아이콘이 지금 선택된 탭이라는 뜻.
   final bool active;
+
+  /// 선택됐을 때 뒤에 회색 알약을 깔지 여부. 홈 탭은 원형 배경 위에 아이콘만
+  /// 파랗게 칠하고 회색 영역은 없어서 false로 둔다.
+  final bool showHighlight;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkResponse(
-      // 탭 영역을 아이콘보다 넉넉하게 잡아서(radius: 28) 손가락으로 누르기
-      // 쉽게 하고, 누르면 옅은 물결 효과(ripple)가 보이게 한다.
+    final icon = SvgPicture.asset(
+      asset,
+      width: width,
+      height: height,
+      // srcIn: 이 아이콘의 불투명한 부분을 전부 지정한 색 하나로
+      // 덮어 칠한다(원래 아이콘 색이 무엇이든 상관없이 실루엣만 사용).
+      colorFilter: ColorFilter.mode(
+        active ? BottomNavBar._brandBlue : BottomNavBar._inactiveColor,
+        BlendMode.srcIn,
+      ),
+    );
+    if (!showHighlight) {
+      return InkResponse(
+        onTap: onTap,
+        radius: 28,
+        child: Padding(padding: const EdgeInsets.all(10), child: icon),
+      );
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      radius: 28,
       child: Container(
-        padding: const EdgeInsets.all(10),
-        // 활성 탭에는 아이콘 뒤에 아주 옅은 회색 알약 배경을 깔아서
-        // "지금 여기 눌려있다"는 느낌을 준다. 비활성이면 배경 없음(null).
+        width: highlightWidth,
+        height: highlightHeight,
+        alignment: Alignment.center,
         decoration: active
             ? BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(highlightHeight / 2),
               )
             : null,
-        child: SvgPicture.asset(
-          asset,
-          width: width,
-          height: height,
-          // srcIn: 이 아이콘의 불투명한 부분을 전부 지정한 색 하나로
-          // 덮어 칠한다(원래 아이콘 색이 무엇이든 상관없이 실루엣만 사용).
-          colorFilter: ColorFilter.mode(
-            active ? BottomNavBar._brandBlue : BottomNavBar._inactiveColor,
-            BlendMode.srcIn,
-          ),
-        ),
+        child: icon,
       ),
     );
   }

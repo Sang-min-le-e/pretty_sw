@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -21,7 +20,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  static const _brandBlue = Color(0xFF4ABEFF);
+  static const _brandBlue = Color(0xFF99B6FF);
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -71,10 +70,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               const Spacer(flex: 3),
-              SizedBox(
-                width: 140,
-                height: 155,
-                child: SvgPicture.asset('assets/images/splash_logo.svg'),
+              Image.asset(
+                'assets/images/splash_logo_tomo.png',
+                width: 200,
+                height: 73,
               ),
               const Spacer(flex: 2),
               Padding(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/child_providers.dart';
 
-/// 자녀 이름을 가로 칩으로 나열해서 지금 보는 자녀를 고르게 하는 줄.
+/// 학생(서버에서는 자녀) 이름을 가로 칩으로 나열해서 지금 보는 학생을 고르게 하는 줄.
+/// 맨 끝의 "+ 학생 추가" 칩으로 학생 등록 화면(`/children/new`)에 들어간다.
 /// 서버의 루틴·기기 API가 전부 자녀별(`/children/:childId/...`)이라, 루틴 탭
 /// 맨 위에 두고 고르면 [selectedChildIdProvider]가 바뀌어 그 자녀 기준으로
 /// 화면이 다시 그려진다.
@@ -28,15 +30,25 @@ class ChildSelector extends ConsumerWidget {
       return GestureDetector(
         onTap: () => ref.invalidate(childListProvider),
         child: const Text(
-          '자녀 목록을 불러오지 못했어요. 눌러서 다시 시도',
+          '학생 목록을 불러오지 못했어요. 눌러서 다시 시도',
           style: TextStyle(color: _captionColor, fontSize: 13),
         ),
       );
     }
     if (children.isEmpty) {
-      return const Text(
-        '등록된 자녀가 없어요',
-        style: TextStyle(color: _captionColor, fontSize: 13),
+      return Row(
+        children: [
+          const Text(
+            '등록된 학생이 없어요',
+            style: TextStyle(color: _captionColor, fontSize: 13),
+          ),
+          const SizedBox(width: 8),
+          _ChildChip(
+            name: '+ 학생 추가',
+            active: false,
+            onTap: () => context.push('/children/new'),
+          ),
+        ],
       );
     }
 
@@ -54,6 +66,12 @@ class ChildSelector extends ConsumerWidget {
                   ref.read(selectedChildIdProvider.notifier).state = child.childId,
             ),
           ],
+          const SizedBox(width: 6),
+          _ChildChip(
+            name: '+ 학생 추가',
+            active: false,
+            onTap: () => context.push('/children/new'),
+          ),
         ],
       ),
     );
@@ -79,7 +97,7 @@ class _ChildChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF4ABEFF) : Colors.white,
+          color: active ? const Color(0xFF99B6FF) : Colors.white,
           borderRadius: BorderRadius.circular(44),
           boxShadow: const [
             BoxShadow(color: Color(0x14000000), offset: Offset(0, 1), blurRadius: 4),

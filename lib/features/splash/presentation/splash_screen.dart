@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-/// Figma: 예소 / 앱 초안 / Group 450 (node-id 279:1819)
+/// Figma: 예소 / 앱 최종 / iPhone 17 - 103 (node-id 508:6190)
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -34,10 +33,10 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: SizedBox(
-          width: 202,
-          height: 224,
-          child: SvgPicture.asset('assets/images/splash_logo.svg'),
+        child: Image.asset(
+          'assets/images/splash_logo_tomo.png',
+          width: 200,
+          height: 73,
         ),
       ),
     );

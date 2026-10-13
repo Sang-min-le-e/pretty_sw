@@ -5,116 +5,110 @@ import 'package:go_router/go_router.dart';
 import '../../../app/widgets/back_header.dart';
 import '../../home/presentation/widgets/device_overview.dart';
 import '../data/device_providers.dart';
-import 'widgets/labeled_field_row.dart';
+import '../data/wifi_credentials.dart';
 
-/// Figma: 예소 / "연결된 기기" (node-id 392:5220, "앱 초안 3" 프레임 안,
-/// 이름 없는 "iPhone 17 - 72" 프레임으로 저장돼 있었다). 홈 화면과 기기
+/// Figma: 예소 / 앱 최종 / iPhone 17 - 92 (node-id 508:5859). 홈 화면과 기기
 /// 상세 화면의 "연결된 기기" 카드를 누르면 도착한다.
 ///
-/// WIFI 정보(그 WIFI에 새 기기를 연결할 때 필요)와, [deviceListProvider]가
-/// 갖고 있는 실제 연결된 기기 목록을 보여준다. "+ 연결 기기 추가"는
-/// [AddConnectedDeviceScreen](Figma "iPhone 17 - 74/75")으로 이동한다.
+/// 위에서부터 WIFI ID, PW, 그리고 "연결된 기기" 카드([ConnectedDevicesCard])가
+/// 쌓인다. 와이파이 값은 마지막으로 기기를 추가할 때 입력해 기기에 넘긴 값이다
+/// ([wifiCredentialsProvider]) — iOS가 지금 붙은 와이파이의 비밀번호를 앱에
+/// 주지 않아서 읽어 올 수가 없다. 한 번도 추가한 적이 없으면 "-"로 보인다.
 class ConnectedDevicesScreen extends ConsumerWidget {
   const ConnectedDevicesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final devices = ref.watch(deviceListProvider).value ?? const [];
-    final idController = TextEditingController(text: 'U+Net1024');
-    final pwController = TextEditingController(text: '1000006315');
+    final wifi = ref.watch(wifiCredentialsProvider).value;
+    final hasDevices = (ref.watch(deviceListProvider).value ?? const []).isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F4),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 26),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              BackHeader(title: '연결된 기기', onBack: () => context.pop()),
-              const SizedBox(height: 24),
-              LabeledFieldRow(label: 'WIFI ID', controller: idController),
-              const SizedBox(height: 12),
-              LabeledFieldRow(label: 'PW', controller: pwController),
-              const SizedBox(height: 24),
-              InkWell(
-                onTap: () => context.push('/connected-devices/add'),
-                borderRadius: BorderRadius.circular(21),
-                child: Container(
-                  height: 55,
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(21),
-                    boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 2)],
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.add, color: kDeviceOverviewBrandBlue, size: 18),
-                      SizedBox(width: 8),
-                      Text('연결 기기 추가', style: TextStyle(color: kDeviceOverviewBrandBlue, fontSize: 14)),
-                    ],
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 제목 글자 왼쪽 끝이 화면 왼쪽에서 59px(Figma)에 오도록 맞춘 여백.
+            Padding(
+              padding: const EdgeInsets.only(left: 31, top: 7),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: BackHeader(
+                  title: '연결된 기기',
+                  chevronColor: const Color(0xFFA9A9A9),
+                  onBack: () => context.pop(),
                 ),
               ),
-              if (devices.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(21),
-                    boxShadow: const [BoxShadow(color: Color(0x14000000), offset: Offset(0, 1), blurRadius: 4)],
+            ),
+            const SizedBox(height: 29),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 19),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _WifiInfoRow(label: 'WIFI ID', value: _orDash(wifi?.ssid)),
+                  const SizedBox(height: 11),
+                  _WifiInfoRow(label: 'PW', value: _orDash(wifi?.password)),
+                  const SizedBox(height: 11),
+                  // 기기가 없으면 "공유 기기 추가" 화면(93)으로 간다. 기기가 있을
+                  // 때 가야 할 기기별 연결 상태 화면(95)은 아직 없어서 기기 탭으로
+                  // 보낸다.
+                  ConnectedDevicesCard(
+                    onTap: () => hasDevices
+                        ? context.go('/devices')
+                        : context.push('/connected-devices/empty'),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            '연결된 기기',
-                            style: TextStyle(
-                              color: kDeviceOverviewLabelColor,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${devices.length}개 기기 연결중',
-                            style: const TextStyle(color: kDeviceOverviewCaptionColor, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      for (var i = 0; i < devices.length; i++) ...[
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: deviceDotColorFor(i),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${devices[i].name}님의 기기',
-                              style: const TextStyle(color: kDeviceOverviewCaptionColor, fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        if (i < devices.length - 1) const SizedBox(height: 10),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  static String _orDash(String? value) =>
+      (value == null || value.isEmpty) ? '-' : value;
+}
+
+/// "WIFI ID  U+Net1024"처럼 라벨과 값을 한 줄로 보여 주는 흰 카드(높이 56).
+class _WifiInfoRow extends StatelessWidget {
+  const _WifiInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 27),
+      decoration: deviceCardDecoration(),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 155,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: kDeviceOverviewLabelColor,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: kDeviceOverviewCaptionColor,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

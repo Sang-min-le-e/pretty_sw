@@ -110,7 +110,7 @@ class SettingsSwitchRow extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   static const _labelColor = Color(0xFF505050);
-  static const _brandBlue = Color(0xFF4ABEFF);
+  static const _brandBlue = Color(0xFF99B6FF);
 
   @override
   Widget build(BuildContext context) {

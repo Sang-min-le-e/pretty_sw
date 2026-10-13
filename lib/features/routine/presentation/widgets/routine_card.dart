@@ -124,7 +124,7 @@ class _RoutineStepRow extends StatelessWidget {
           height: 13,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: done ? const Color(0xFF4ABEFF) : const Color(0xFFD9D9D9),
+            color: done ? const Color(0xFF99B6FF) : const Color(0xFFD9D9D9),
             borderRadius: BorderRadius.circular(2),
           ),
           child: Text(

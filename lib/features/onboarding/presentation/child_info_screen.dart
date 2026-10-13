@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../children/data/child_providers.dart';
-import 'widgets/step_dots.dart';
 
-/// Figma: 예소 / 앱 초안 / Group 454 (node-id 279:1910) — 초기 설정 2단계.
+/// Figma: 예소 / 앱 초안 / Group 454 (node-id 279:1910).
 ///
-/// 보호자 정보 다음 단계로, 자녀 이름·생년월일·(원래 1단계에 있었던)
-/// 자녀와의 관계를 입력받아 `POST /children`으로 등록한다(`docs/API.md`
-/// 6장 — 온보딩 2차). `relationship`은 백엔드가 `PARENT`(부모)/`ADMIN`
-/// (관리자) 두 값으로 제한해뒀다(2026-09-04 확정).
+/// 관리자(선생님)가 학생을 등록하는 화면. 학생 이름·생년월일을 입력받아
+/// `POST /children`으로 등록한다(`docs/API.md` 6장). 서버에서는 학생이
+/// "자녀(child)"로 불리며, 관리자 계정이라 `relationship`은 항상 `ADMIN`이다.
+/// 초기 설정 흐름에서는 빠졌고, 루틴 탭의 학생 선택 줄에서 `/children/new`로
+/// 들어온다.
 class ChildInfoScreen extends ConsumerStatefulWidget {
   const ChildInfoScreen({super.key});
 
@@ -23,18 +23,13 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
   static const _labelColor = Color(0xFF505050);
   static const _hintColor = Color(0xFFA3A3A3);
   static const _borderColor = Color(0xFFD9D9D9);
-  static const _brandBlue = Color(0xFF4ABEFF);
-
-  // 화면에 보여줄 한국어 표기 -> 백엔드 relationship 값.
-  // docs/API.md 6장: "한국어 '부모'·'관리자'를 코드값으로 옮긴 것입니다."
-  static const _relationships = {'부모': 'PARENT', '관리자': 'ADMIN'};
+  static const _brandBlue = Color(0xFF99B6FF);
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   int? _year;
   int? _month;
   int? _day;
-  String? _relationship;
   bool _submitting = false;
 
   @override
@@ -66,14 +61,14 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
       final child = await ref.read(childRepositoryProvider).createChild(
             name: _nameController.text,
             birthDate: DateTime(_year!, _month!, _day!),
-            relationship: _relationships[_relationship]!,
+            relationship: 'ADMIN',
           );
       // 루틴 탭의 자녀 선택에 방금 등록한 자녀가 바로 보이고 선택돼 있도록
       // 목록을 새로 받고 이 자녀를 고른 상태로 둔다.
       ref.invalidate(childListProvider);
       ref.read(selectedChildIdProvider.notifier).state = child.childId;
       if (!mounted) return;
-      context.push('/onboarding/device-connection');
+      context.canPop() ? context.pop() : context.go('/routine');
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -101,15 +96,13 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                   padding: EdgeInsets.zero,
                   alignment: Alignment.centerLeft,
                   icon: const Icon(Icons.chevron_left, size: 32, color: _labelColor),
-                  onPressed: () => context.canPop()
-                      ? context.pop()
-                      : context.go('/onboarding/guardian-info'),
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/'),
                 ),
                 const SizedBox(height: 8),
                 const SizedBox(
                   width: double.infinity,
                   child: Text(
-                    '시작하기 전,\n몇가지 확인이 필요해요',
+                    '학생을 등록해주세요',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: _labelColor,
@@ -119,11 +112,9 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Center(child: StepDots(activeIndex: 1)),
                 const Spacer(flex: 2),
                 const Text(
-                  '자녀 성명',
+                  '학생 성명',
                   style: TextStyle(color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
@@ -131,11 +122,11 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                   controller: _nameController,
                   decoration: _fieldDecoration('ex. 홍길동'),
                   validator: (value) =>
-                      (value == null || value.isEmpty) ? '자녀 성명을 입력해주세요' : null,
+                      (value == null || value.isEmpty) ? '학생 성명을 입력해주세요' : null,
                 ),
                 const SizedBox(height: 32),
                 const Text(
-                  '자녀 생년월일',
+                  '학생 생년월일',
                   style: TextStyle(color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
@@ -188,22 +179,6 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  '자녀와의 관계',
-                  style: TextStyle(color: _labelColor, fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _relationship,
-                  decoration: _fieldDecoration('선택하세요'),
-                  icon: const Icon(Icons.keyboard_arrow_down, color: _hintColor),
-                  items: _relationships.keys
-                      .map((label) => DropdownMenuItem(value: label, child: Text(label)))
-                      .toList(),
-                  onChanged: (value) => setState(() => _relationship = value),
-                  validator: (value) => value == null ? '자녀와의 관계를 선택해주세요' : null,
-                ),
                 const Spacer(flex: 5),
                 SizedBox(
                   width: double.infinity,
@@ -221,23 +196,10 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                             height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('다음으로', style: TextStyle(fontSize: 22)),
+                        : const Text('등록하기', style: TextStyle(fontSize: 22)),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text(
-                      '두명 이상의 자녀와 사용할래요',
-                      style: TextStyle(
-                        color: Color(0xFFA5A5A5),
-                        fontSize: 12,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

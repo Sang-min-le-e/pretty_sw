@@ -208,7 +208,6 @@ app.dart   MaterialApp.router(theme, appRouter)
 | `/profile/user-settings` | `UserSettingsScreen` | `profile/presentation/user_settings_screen.dart` |
 | `/profile/login-history` | `LoginHistoryScreen` (예시 값) | `profile/presentation/login_history_screen.dart` |
 | `/connected-devices` | `ConnectedDevicesScreen` (홈·기기 탭 공통) | `devices/presentation/connected_devices_screen.dart` |
-| `/connected-devices/add` | `AddConnectedDeviceScreen` | `devices/presentation/add_connected_device_screen.dart` |
 | `/watch-connection` | `WatchConnectionScreen` (어디서도 이동 안 함) | `watch_connection/presentation/watch_connection_screen.dart` |
 
 `context.go(경로)` = 스택을 갈아치움(탭 이동, 로그인 후), `context.push(경로)` = 위에 쌓음(뒤로가기 가능), `context.pop()` = 뒤로.

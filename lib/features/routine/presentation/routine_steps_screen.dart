@@ -222,7 +222,7 @@ class _RoutineStepsScreenState extends ConsumerState<RoutineStepsScreen> {
                               radius: 16,
                               child: Icon(
                                 Icons.add,
-                                color: _busy ? kRoutineFormPlaceholderColor : const Color(0xFF4ABEFF),
+                                color: _busy ? kRoutineFormPlaceholderColor : const Color(0xFF99B6FF),
                               ),
                             ),
                           ],
@@ -276,7 +276,7 @@ class _StepRow extends StatelessWidget {
             height: 13,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: step.done ? const Color(0xFF4ABEFF) : const Color(0xFFD9D9D9),
+              color: step.done ? const Color(0xFF99B6FF) : const Color(0xFFD9D9D9),
               borderRadius: BorderRadius.circular(2),
             ),
             child: Text(

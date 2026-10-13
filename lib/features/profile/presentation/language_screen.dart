@@ -77,7 +77,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 child: ElevatedButton(
                   onPressed: () => context.pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4ABEFF),
+                    backgroundColor: const Color(0xFF99B6FF),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: const StadiumBorder(),

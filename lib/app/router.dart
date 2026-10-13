@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/login_social_basic_info_screen.dart';
 import '../features/auth/presentation/login_social_screen.dart';
-import '../features/devices/presentation/add_connected_device_screen.dart';
 import '../features/devices/presentation/add_device_screen.dart';
+import '../features/devices/presentation/connected_devices_empty_screen.dart';
 import '../features/devices/presentation/connected_devices_screen.dart';
 import '../features/devices/presentation/device_detail_screen.dart';
 import '../features/devices/presentation/device_settings_screen.dart';
@@ -14,7 +14,6 @@ import '../features/devices/presentation/widgets/device_route_scope.dart';
 import '../features/devices/presentation/wifi_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/onboarding/presentation/child_info_screen.dart';
-import '../features/onboarding/presentation/device_connection_screen.dart';
 import '../features/onboarding/presentation/guardian_info_screen.dart';
 import '../features/profile/presentation/language_screen.dart';
 import '../features/profile/presentation/login_history_screen.dart';
@@ -69,18 +68,15 @@ final appRouter = GoRouter(
       ],
     ),
 
-    // 3) 초기 설정(온보딩) 3단계 — 최초 로그인일 때만 순서대로 지나간다.
+    // 3) 초기 설정(온보딩) — 최초 로그인일 때만 지나가는 관리자 이름 입력 1단계.
     GoRoute(
-      path: '/onboarding/guardian-info', // 1/3: 보호자 정보 입력
+      path: '/onboarding/guardian-info',
       builder: (context, state) => const GuardianInfoScreen(),
     ),
+    // 학생 등록 — 루틴 탭의 학생 선택 줄에서 들어온다.
     GoRoute(
-      path: '/onboarding/child-info', // 2/3: 자녀 정보 입력
+      path: '/children/new',
       builder: (context, state) => const ChildInfoScreen(),
-    ),
-    GoRoute(
-      path: '/onboarding/device-connection', // 3/3: 기기 연결 대기 화면
-      builder: (context, state) => const DeviceConnectionScreen(),
     ),
 
     // 4) 하단 탭바로 이동하는 4개의 메인 화면.
@@ -248,9 +244,11 @@ final appRouter = GoRouter(
       path: '/connected-devices',
       builder: (context, state) => const ConnectedDevicesScreen(),
       routes: [
+        // => '/connected-devices/empty', 연결된 기기가 없을 때 카드를 누르면
+        // 도착하는 "공유 기기 추가" 화면.
         GoRoute(
-          path: 'add',
-          builder: (context, state) => const AddConnectedDeviceScreen(),
+          path: 'empty',
+          builder: (context, state) => const ConnectedDevicesEmptyScreen(),
         ),
       ],
     ),

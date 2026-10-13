@@ -10,6 +10,7 @@ import '../../children/data/child_providers.dart';
 import '../../watch_connection/data/watch_connection_providers.dart';
 import '../domain/connected_device.dart';
 import 'device_repository.dart';
+import 'wifi_credentials.dart';
 
 final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   return ApiDeviceRepository(ref.watch(apiClientProvider));
@@ -84,7 +85,16 @@ class DeviceActions {
       while (true) {
         if (isCancelled?.call() ?? false) throw StateError('페어링이 취소됐어요.');
         final device = await repository.getDevice(ticket.deviceId);
-        if (device.isActive) break;
+        if (device.isActive) {
+          // 페어링이 끝난 와이파이는 "연결된 기기" 화면에 보여 주려고 남겨 둔다.
+          try {
+            await _ref
+                .read(wifiCredentialsStoreProvider)
+                .save(WifiCredentials(ssid: ssid, password: password));
+            _ref.invalidate(wifiCredentialsProvider);
+          } catch (_) {} // 저장 실패가 페어링 성공을 되돌리진 않는다.
+          break;
+        }
         if (DateTime.now().isAfter(deadline)) {
           throw TimeoutException('기기가 시간 안에 연결되지 않았어요.', pairingTimeout);
         }
