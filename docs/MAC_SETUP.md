@@ -6,7 +6,7 @@
 ## 0. 한눈에 보기 (순서대로)
 
 1. 도구 설치: Homebrew → Flutter → Xcode(+시뮬레이터) → CocoaPods → (선택) Android Studio, Docker Desktop, Java 21
-2. 코드 받기: `git clone` → `git switch feature` → `flutter pub get` → `cd ios && pod install`
+2. 코드 받기: `git clone` → `flutter pub get` → `cd ios && pod install`
 3. 백엔드 받기·실행: 옆 폴더에 `2026-khu-artistic-software` clone → `./gradlew bootRun`
 4. 앱 실행: 시뮬레이터/폰을 고르고 `flutter run -d <id>` (실기기면 `--dart-define=API_BASE_URL=…`)
 5. 테스트 계정 만들기 (맥북의 DB는 **새로 시작**한다 — 아래 6장)
@@ -48,15 +48,15 @@ brew install openjdk@21               # Java 21 필요 (build.gradle 이 21 로 
 mkdir -p ~/Projects && cd ~/Projects
 git clone https://github.com/Sang-min-le-e/pretty_sw.git
 cd pretty_sw
-git switch feature        # 최신 작업은 feature 브랜치(PR이 merge 전이어도 여기에 다 있다)
+git switch main           # 최신 작업은 main에 있다
 git pull
 flutter pub get
 cd ios && pod install && cd ..
 ```
 
-- 이미 clone 해 둔 맥북이라면 `git switch feature && git pull` 만 하면 된다.
-- 이 저장소의 **Git 규칙**(main 직접 push 금지, feature → PR → 직접 merge)은 [GIT_WORKFLOW.md](GIT_WORKFLOW.md).
-  리눅스와 맥북이 **같은 `feature` 브랜치**를 쓰므로, 작업 시작 전 항상 `git pull`, 끝나면 push 해서 서로 어긋나지 않게 한다.
+- 이미 clone 해 둔 맥북이라면 `git switch main && git pull` 만 하면 된다.
+- 이 저장소의 **Git 규칙**(`main`에 바로 커밋·push)은 [GIT_WORKFLOW.md](GIT_WORKFLOW.md).
+  리눅스와 맥북이 **같은 `main` 브랜치**를 쓰므로, 작업 시작 전 항상 `git pull`, 끝나면 push 해서 서로 어긋나지 않게 한다.
 
 ## 3. 백엔드 실행 (같은 맥북에서)
 
@@ -150,7 +150,7 @@ Claude Code 의 **메모리와 `CLAUDE.md` 는 컴퓨터마다 따로**다. `CLA
 | 파일 | 내용 |
 |---|---|
 | [HANDOFF.md](HANDOFF.md) | 최근 작업 상황, 다음 할 일 |
-| [GIT_WORKFLOW.md](GIT_WORKFLOW.md) | "AI 에이전트가 지킬 규칙"(main 금지, PR만, 직접 merge 등) |
+| [GIT_WORKFLOW.md](GIT_WORKFLOW.md) | "AI 에이전트가 지킬 규칙"(시키기 전엔 커밋·push 안 함, force push 금지 등) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 구조, 데이터 흐름, 서버 API 표 |
 | [frontend_migration_plan.md](frontend_migration_plan.md) | 서버 연동 단계(1·2단계 완료, 3단계=기기) |
 | [DEVICE_INTEGRATION.md](DEVICE_INTEGRATION.md) | 기기 연동 정리와 미팅 체크리스트 |
@@ -160,8 +160,8 @@ Claude Code 의 **메모리와 `CLAUDE.md` 는 컴퓨터마다 따로**다. `CLA
 
 ```
 이 저장소는 Flutter 앱(pretty_sw)이다. 먼저 docs/HANDOFF.md, docs/GIT_WORKFLOW.md,
-docs/ARCHITECTURE.md, docs/DEVICE_INTEGRATION.md 를 읽어줘. 작업 규칙: main에 직접 커밋/푸시하지 않고
-feature 브랜치에서 작업해 PR을 올린다(merge는 내가 한다). 코드 주석은 한국어로 충분히 단다.
+docs/ARCHITECTURE.md, docs/DEVICE_INTEGRATION.md 를 읽어줘. 작업 규칙: 커밋·푸시는 내가 시킬 때만 하고,
+main에 바로 한다(PR 없음). 코드 주석은 한국어로 충분히 단다.
 커밋 전 flutter analyze 를 통과시키고, 줄이 바뀌면 docs/code-tour/build.py 도 돌려줘.
 오늘은 docs/DEVICE_INTEGRATION.md 4장의 "앱 파트가 할 일"을 순서대로 진행하려고 해.
 ```

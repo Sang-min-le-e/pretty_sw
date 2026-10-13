@@ -280,7 +280,7 @@ app.dart   MaterialApp.router(theme, appRouter)
 
 ## 10. 명령어
 
-> Git 작업 방식(feature 브랜치 → PR)은 `docs/GIT_WORKFLOW.md`, 최근 세션 이어받기는 `docs/HANDOFF.md`, 코드 한 줄씩 읽기는 `docs/code-tour/tour.html`을 본다.
+> Git 작업 방식(`main`에 바로 작업)은 `docs/GIT_WORKFLOW.md`, 최근 세션 이어받기는 `docs/HANDOFF.md`, 코드 한 줄씩 읽기는 `docs/code-tour/tour.html`을 본다.
 
 ```bash
 flutter pub get        # 의존성 설치
