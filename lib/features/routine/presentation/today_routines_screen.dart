@@ -52,7 +52,11 @@ class _TodayRoutinesScreenState extends ConsumerState<TodayRoutinesScreen> {
   /// 거기서는 "맨 아래를 넘어가면" 다음 화면으로 넘어갔다면, 여기서는
   /// "맨 위를 넘어가면"(=위로 더 당기면) 이전 화면으로 돌아간다.
   bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollUpdateNotification && !_hasPoppedOnce) {
+    // 직접 당기는 중일 때만(dragDetails != null) 반응한다 — 튕겨 돌아오는 동안의
+    // 알림으로 의도치 않게 돌아가지 않게 한다([RoutineScreen]과 같은 이유).
+    if (notification is ScrollUpdateNotification &&
+        notification.dragDetails != null &&
+        !_hasPoppedOnce) {
       final metrics = notification.metrics;
       final overscrolledPastTop = metrics.minScrollExtent - metrics.pixels;
       if (overscrolledPastTop > _overscrollTriggerDistance) {

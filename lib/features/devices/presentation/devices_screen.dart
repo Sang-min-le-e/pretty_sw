@@ -27,7 +27,7 @@ class DevicesScreen extends ConsumerWidget {
         bottom: false,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
+            padding: const EdgeInsets.fromLTRB(36, 17, 36, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -42,14 +42,14 @@ class DevicesScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 28),
                 // Wrap으로 2열 그리드를 만든다. GridView 대신 Wrap을 쓴 건,
                 // 카드 개수가 적고 카드 높이가 고정(157)이라 스크롤 영역
                 // 안에서 내용물 높이만큼만 차지하는 Wrap이 GridView의
                 // shrinkWrap 설정보다 더 간단하기 때문.
                 Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
+                  spacing: 10,
+                  runSpacing: 11,
                   children: [
                     for (var i = 0; i < devices.length; i++)
                       _DeviceGridCard(
@@ -149,32 +149,65 @@ class _AddDeviceGridCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(25),
-      child: Container(
-        width: _kCardWidth,
-        height: _kCardHeight,
-        // Figma 원본은 점선 테두리지만, Flutter 기본 Border는 점선을
-        // 지원하지 않아서(커스텀 페인터 없이는) 실선으로 대체했다 —
-        // 자리를 채우는 스텁 카드라 시각적 차이가 크지 않다고 판단.
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: _dashedBorderColor),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 26,
-              height: 24,
-              child: AssetIcon('assets/images/device_add_plus.svg'),
-            ),
-            SizedBox(height: 10),
-            Text(
-              '기기 추가하기',
-              style: TextStyle(color: _dashedBorderColor, fontSize: 14),
-            ),
-          ],
+      child: CustomPaint(
+        // Flutter 기본 Border는 점선을 못 그려서 테두리만 직접 그린다.
+        foregroundPainter: const _DashedRRectPainter(color: _dashedBorderColor, radius: 25),
+        child: const SizedBox(
+          width: _kCardWidth,
+          height: _kCardHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 26,
+                height: 24,
+                child: AssetIcon('assets/images/device_add_plus.svg'),
+              ),
+              SizedBox(height: 10),
+              Text(
+                '기기 추가하기',
+                style: TextStyle(color: _dashedBorderColor, fontSize: 14),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// 둥근 사각형 점선 테두리(Figma의 `border-dashed`).
+class _DashedRRectPainter extends CustomPainter {
+  const _DashedRRectPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  static const _dash = 4.0;
+  static const _gap = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0.5, 0.5, size.width - 1, size.height - 1),
+          Radius.circular(radius),
+        ),
+      );
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + _dash), paint);
+        distance += _dash + _gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRRectPainter old) => old.color != color || old.radius != radius;
 }

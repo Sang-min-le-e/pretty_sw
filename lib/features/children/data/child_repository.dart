@@ -8,7 +8,6 @@ abstract class ChildRepository {
   /// 온보딩 2차(`docs/API.md` 6장 `POST /children`).
   Future<Child> createChild({
     required String name,
-    required DateTime birthDate,
     required String relationship,
   });
 
@@ -23,7 +22,6 @@ class ApiChildRepository implements ChildRepository {
   @override
   Future<Child> createChild({
     required String name,
-    required DateTime birthDate,
     required String relationship,
   }) async {
     try {
@@ -31,7 +29,6 @@ class ApiChildRepository implements ChildRepository {
         '/children',
         data: {
           'name': name,
-          'birthDate': _dateOnly(birthDate),
           'relationship': relationship,
         },
       );
@@ -51,13 +48,5 @@ class ApiChildRepository implements ChildRepository {
     } on DioException catch (e) {
       throwAsApiException(e);
     }
-  }
-
-  /// `docs/API.md` 1-3 — 날짜는 `yyyy-MM-dd`만 받는다(시각 없음).
-  String _dateOnly(DateTime date) {
-    final y = date.year.toString().padLeft(4, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    final d = date.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
   }
 }

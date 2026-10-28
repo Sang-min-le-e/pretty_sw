@@ -1,4 +1,6 @@
-/// 루틴 하나(예: "07:30~08:30 아침 준비")를 나타내는 도메인 모델. 서버
+import 'time_format.dart';
+
+/// 루틴 하나(예: "오전 7:30~8:30 아침 준비")를 나타내는 도메인 모델. 서버
 /// 용어로는 **빅루틴 하루치**다 — 서버는 반복 루틴을 날짜별 행으로 미리 만들어
 /// 두기 때문에(`docs/API.md` 9장), 같은 반복에서 나온 행들은 [seriesId]가 같고
 /// 날짜([date])만 다르다.
@@ -40,11 +42,8 @@ class Routine {
   int get totalCount => smallRoutines.length;
   int get doneCount => smallRoutines.where((s) => s.done).length;
 
-  /// 카드 한 줄에 쓰는 시간 표기. 종료 시각이 있으면 "07:30~08:30".
-  String get timeLabel {
-    if (startTime.isEmpty) return '';
-    return endTime.isEmpty ? startTime : '$startTime~$endTime';
-  }
+  /// 카드 한 줄에 쓰는 시간 표기. 종료 시각이 있으면 "오전 7:30~8:30".
+  String get timeLabel => formatTimeRangeKorean(startTime, endTime);
 
   /// 날짜와 시작 시각을 합친 값(정렬·기간 비교용). 시작 시각이 없으면 0시.
   DateTime get startDateTime {

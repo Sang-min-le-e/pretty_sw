@@ -6,6 +6,11 @@ abstract class AuthSessionRepository {
   Future<String?> getAccessUuid();
   Future<void> saveAccessUuid(String uuid);
   Future<void> clearAccessUuid();
+
+  /// 이 기기에서 마지막으로 로그인한 시각. 서버가 로그인 기록을 주지 않아서
+  /// "로그인 기록" 화면은 이 값 하나만 보여준다. 로그인한 적이 없으면 `null`.
+  Future<DateTime?> getLastLoginAt();
+  Future<void> saveLastLoginAt(DateTime time);
 }
 
 /// Hive 기반 로컬 구현체. `docs/API.md` 1-1 — 백엔드는 JWT를 쓰지 않고
@@ -18,6 +23,7 @@ class LocalAuthSessionRepository implements AuthSessionRepository {
 
   static const _boxName = 'auth';
   static const _accessUuidKey = 'access_uuid';
+  static const _lastLoginAtKey = 'last_login_at';
   final LocalStorageService _storage;
 
   Future<Box<Map>> get _box => _storage.openBox(_boxName);
@@ -38,5 +44,18 @@ class LocalAuthSessionRepository implements AuthSessionRepository {
   Future<void> clearAccessUuid() async {
     final box = await _box;
     await box.delete(_accessUuidKey);
+  }
+
+  @override
+  Future<DateTime?> getLastLoginAt() async {
+    final box = await _box;
+    final raw = box.get(_lastLoginAtKey)?['value'] as String?;
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  @override
+  Future<void> saveLastLoginAt(DateTime time) async {
+    final box = await _box;
+    await box.put(_lastLoginAtKey, {'value': time.toIso8601String()});
   }
 }

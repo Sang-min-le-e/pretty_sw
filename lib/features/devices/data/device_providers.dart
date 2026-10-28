@@ -16,16 +16,19 @@ final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   return ApiDeviceRepository(ref.watch(apiClientProvider));
 });
 
-/// 지금 선택된 자녀의 **연결 완료(`ACTIVE`)** 기기 목록(`deviceId` 순). 비어 있으면
+/// 내 모든 자녀의 **연결 완료(`ACTIVE`)** 기기 목록(`deviceId` 순). 비어 있으면
 /// "연결된 기기 없음" 상태를 뜻한다 — 홈 화면 `ConnectedDevicesCard`가 이 provider로
 /// 빈 상태/목록 상태를 가른다. 아직 claim 전(`PENDING`)인 기기는 연결된 게 아니라서
-/// 뺀다. 자녀를 바꾸면 그 자녀의 목록으로 다시 받아온다.
+/// 뺀다. Figma에서는 기기마다 학생이 하나씩 자동으로 생기고 "연결된 기기"에 전부
+/// 나란히 보여서, 자녀 한 명이 아니라 모든 자녀의 기기를 모은다.
 final deviceListProvider = FutureProvider<List<ConnectedDevice>>((ref) async {
-  final child = ref.watch(currentChildProvider);
-  if (child == null) return const [];
-  final devices = await ref.watch(deviceRepositoryProvider).getDevices(child.childId);
-  return devices.where((d) => d.isActive).toList()
-    ..sort((a, b) => a.deviceId.compareTo(b.deviceId));
+  final children = ref.watch(childListProvider).value ?? const [];
+  if (children.isEmpty) return const [];
+  final repository = ref.watch(deviceRepositoryProvider);
+  final perChild = await Future.wait(children.map((c) => repository.getDevices(c.childId)));
+  return [
+    for (final devices in perChild) ...devices.where((d) => d.isActive),
+  ]..sort((a, b) => a.deviceId.compareTo(b.deviceId));
 });
 
 /// 홈 화면 캐러셀에서 지금 보고 있는 기기의 [deviceListProvider] 안
@@ -60,8 +63,16 @@ class DeviceActions {
     bool Function()? isCancelled,
     void Function(String step)? onStep,
   }) async {
-    final child = _ref.read(currentChildProvider);
-    if (child == null) throw StateError('선택된 자녀가 없어요.');
+    // Figma에는 학생 등록 단계가 없고 기기 이름이 곧 학생 이름이다. 서버는 기기를
+    // 자녀에 붙이므로 기기마다 자녀를 하나 자동으로 만든다. 생년월일은 보내지
+    // 않는다 — 서버가 필수로 요구하면 이 단계에서 서버 오류 문구가 그대로 보인다.
+    onStep?.call('학생 정보를 만드는 중');
+    final child = await _ref.read(childRepositoryProvider).createChild(
+          name: nickname,
+          relationship: 'ADMIN',
+        );
+    _ref.invalidate(childListProvider);
+    _ref.read(selectedChildIdProvider.notifier).state = child.childId;
 
     final repository = _ref.read(deviceRepositoryProvider);
 

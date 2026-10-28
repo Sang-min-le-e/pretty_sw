@@ -51,6 +51,12 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
     _displayedMonth = DateTime(today.year, today.month);
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   /// 달력 칸을 눌러 날짜를 바꿀 때 호출. 다른 달의 칸을 눌렀다면(예:
   /// 이전/다음 달로 넘어간 뒤 그 달의 날짜를 고르는 경우) 보여주는 달도
   /// 함께 그 날짜의 달로 맞춘다.
@@ -95,6 +101,8 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
   /// 확실하게 완료되므로 훨씬 안정적이다.
   bool _navigatingToToday = false;
 
+  final _scrollController = ScrollController();
+
   /// 스크롤 목록에서 발생하는 알림을 살펴보다가, 맨 아래에 이미 닿은
   /// 상태에서 사용자가 더 아래로 당기는(overscroll) 순간을 잡아 "오늘
   /// 할 일" 화면으로 넘어간다.
@@ -107,14 +115,30 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
   /// `maxScrollExtent`를 얼마나 넘었는지를 직접 계산해서 판단해야 한다.
   /// `false`를 돌려줘야 이 알림이 위쪽(예: 스크롤바 등)으로도 계속
   /// 전달된다.
+  ///
+  /// **손가락으로 직접 당기는 동안만**(`dragDetails != null`) 반응한다. 손을 떼고
+  /// 튕겨 돌아오는 중(ballistic)에도 같은 알림이 오는데, 이걸 세면 안 된다:
+  /// 오늘 할 일 화면에 가려진 동안 이 화면의 스크롤은 당겨진 위치(예: 165px)에서
+  /// 멈춰 있다가, 돌아오는 순간 다시 튕겨 돌아오면서 임계값(60px)을 넘는 알림을
+  /// 쏟아낸다. 그걸 "또 당겼다"로 읽으면 방금 돌아온 오늘 할 일 화면이 곧바로 다시
+  /// 열려서, 올라가기에 한 번 실패한 것처럼 보였다.
   bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollUpdateNotification && !_navigatingToToday) {
+    if (notification is ScrollUpdateNotification &&
+        notification.dragDetails != null &&
+        !_navigatingToToday) {
       final metrics = notification.metrics;
       final overscrolledPastBottom = metrics.pixels - metrics.maxScrollExtent;
       if (overscrolledPastBottom > _overscrollTriggerDistance) {
         _navigatingToToday = true;
         context.push('/routine/today').then((_) {
-          if (mounted) setState(() => _navigatingToToday = false);
+          if (!mounted) return;
+          // 오늘 할 일에서 위로 올라오면 달력 화면은 항상 맨 위(월 제목)부터 보인다.
+          // 가려진 사이 당겨진 채로 멈춰 있던 스크롤도 함께 정리돼서, 돌아온 화면이
+          // 크게 튕기지 않는다.
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+          }
+          setState(() => _navigatingToToday = false);
         });
       }
     }
@@ -145,10 +169,14 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
           // 진짜 아래쪽에 고정된다.
           Positioned.fill(
             child: SafeArea(
+              // 위쪽 안전 영역은 아래 흰 달력 패널이 직접 채운다(Figma는 패널이
+              // 화면 맨 위부터 시작).
+              top: false,
               bottom: false,
               child: NotificationListener<ScrollNotification>(
                 onNotification: _handleScrollNotification,
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   // 기본(Android) 스크롤 물리는 끝에서 그냥 멈춰버려서
                   // overscroll 알림 자체가 발생하지 않는다. "더 당기면
                   // 다음 화면"이라는 제스처가 동작하려면 당겼을 때 살짝
@@ -164,28 +192,38 @@ class _RoutineScreenState extends ConsumerState<RoutineScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 어느 자녀의 루틴을 볼지 고르는 칩 줄(서버 루틴 API가 자녀별).
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(26, 16, 26, 0),
-                        child: ChildSelector(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
-                        child: _MonthHeader(
-                          month: _displayedMonth,
-                          onPrevMonth: () => _shiftMonth(-1),
-                          onNextMonth: () => _shiftMonth(1),
+                      // Figma: 달력 영역은 화면 맨 위부터 시작하는 흰 패널이다.
+                      Container(
+                        color: Colors.white,
+                        padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, bottom: 31),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 어느 자녀의 루틴을 볼지 고르는 칩 줄(서버 루틴 API가 자녀별).
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(26, 16, 26, 0),
+                              child: ChildSelector(),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
+                              child: _MonthHeader(
+                                month: _displayedMonth,
+                                onPrevMonth: () => _shiftMonth(-1),
+                                onNextMonth: () => _shiftMonth(1),
+                              ),
+                            ),
+                            const SizedBox(height: 24.5),
+                            const _WeekdayHeaderRow(),
+                            _CalendarGrid(
+                              month: _displayedMonth,
+                              selectedDate: _selectedDate,
+                              routineCountsByDay: countsForDisplayedMonth,
+                              onSelectDate: _selectDate,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      const _WeekdayHeaderRow(),
-                      _CalendarGrid(
-                        month: _displayedMonth,
-                        selectedDate: _selectedDate,
-                        routineCountsByDay: countsForDisplayedMonth,
-                        onSelectDate: _selectDate,
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 17),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(19, 0, 19, 120),
                         child: RoutineCardList(
@@ -431,7 +469,8 @@ class _CalendarDayCell extends StatelessWidget {
       onTap: onTap,
       radius: 28,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        // Figma: 줄 간격 82. 숫자 중심에서 개수 배지 중심까지 26.
+        padding: const EdgeInsets.only(top: 14.5, bottom: 20.5),
         child: Column(
           children: [
             Container(
@@ -453,7 +492,7 @@ class _CalendarDayCell extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 5),
             // 그날 루틴이 하나라도 있으면 작은 회색 원 안에 개수를 보여준다.
             if (routineCount != null && routineCount! > 0)
               Container(

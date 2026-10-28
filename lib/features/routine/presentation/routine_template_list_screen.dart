@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/routine_template_providers.dart';
 import '../domain/routine_template.dart';
+import '../domain/time_format.dart';
 
 /// Figma: 예소 / "템플릿 사용" (node-id 415:1847, "앱 초안 3" 프레임 안).
 /// "루틴 추가 선택 화면"에서 "템플릿 사용"을 누르면 도착한다.
@@ -119,9 +120,7 @@ class _TemplateCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timeLabel = template.startTime.isEmpty
-        ? ''
-        : (template.endTime.isEmpty ? template.startTime : '${template.startTime}~${template.endTime}');
+    final timeLabel = formatTimeRangeKorean(template.startTime, template.endTime);
     return GestureDetector(
       onTap: () => context.push('/routine/add/single', extra: template),
       child: Container(

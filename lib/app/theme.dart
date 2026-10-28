@@ -5,6 +5,10 @@ const kBrandColor = Color(0xFF99B6FF);
 
 final appTheme = ThemeData(
   useMaterial3: true,
+  // Figma 글꼴(Noto Sans). 영문·숫자는 NotoSans, 한글은 NotoSansKR. 파일은
+  // assets/fonts에 있다.
+  fontFamily: 'NotoSans',
+  fontFamilyFallback: const ['NotoSansKR'],
   colorScheme: ColorScheme.fromSeed(seedColor: kBrandColor),
   visualDensity: VisualDensity.comfortable,
   textTheme: const TextTheme(

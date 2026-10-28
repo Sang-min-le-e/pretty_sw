@@ -51,6 +51,7 @@ class ApiAuthRepository implements AuthRepository {
       );
       final data = response.data['data'] as Map<String, dynamic>;
       await _session.saveAccessUuid(data['accessUuid'] as String);
+      await _session.saveLastLoginAt(DateTime.now());
       return AuthUser.fromJson(data['user'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throwAsApiException(e);

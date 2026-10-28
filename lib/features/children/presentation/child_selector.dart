@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../data/child_providers.dart';
 
 /// 학생(서버에서는 자녀) 이름을 가로 칩으로 나열해서 지금 보는 학생을 고르게 하는 줄.
-/// 맨 끝의 "+ 학생 추가" 칩으로 학생 등록 화면(`/children/new`)에 들어간다.
+/// 학생은 직접 추가하지 않고 기기를 연결할 때 기기 이름으로 자동 생성된다.
 /// 서버의 루틴·기기 API가 전부 자녀별(`/children/:childId/...`)이라, 루틴 탭
 /// 맨 위에 두고 고르면 [selectedChildIdProvider]가 바뀌어 그 자녀 기준으로
 /// 화면이 다시 그려진다.
@@ -35,22 +34,8 @@ class ChildSelector extends ConsumerWidget {
         ),
       );
     }
-    if (children.isEmpty) {
-      return Row(
-        children: [
-          const Text(
-            '등록된 학생이 없어요',
-            style: TextStyle(color: _captionColor, fontSize: 13),
-          ),
-          const SizedBox(width: 8),
-          _ChildChip(
-            name: '+ 학생 추가',
-            active: false,
-            onTap: () => context.push('/children/new'),
-          ),
-        ],
-      );
-    }
+    // 학생은 기기를 연결할 때 자동으로 만들어진다. 기기가 없으면 고를 학생도 없다.
+    if (children.isEmpty) return const SizedBox.shrink();
 
     final current = ref.watch(currentChildProvider);
     return SingleChildScrollView(
@@ -66,12 +51,6 @@ class ChildSelector extends ConsumerWidget {
                   ref.read(selectedChildIdProvider.notifier).state = child.childId,
             ),
           ],
-          const SizedBox(width: 6),
-          _ChildChip(
-            name: '+ 학생 추가',
-            active: false,
-            onTap: () => context.push('/children/new'),
-          ),
         ],
       ),
     );

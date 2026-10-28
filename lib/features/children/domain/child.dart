@@ -3,13 +3,15 @@ class Child {
   const Child({
     required this.childId,
     required this.name,
-    required this.birthDate,
+    this.birthDate,
     required this.relationship,
   });
 
   final int childId;
   final String name;
-  final DateTime birthDate;
+  /// 앱은 생년월일을 받지 않는다(기기를 연결할 때 이름만으로 자동 생성). 서버가
+  /// 값을 갖고 있을 때만 들어온다.
+  final DateTime? birthDate;
 
   /// `PARENT`(부모) 또는 `ADMIN`(관리자) 둘뿐이다 — 백엔드가 이 두 값으로
   /// 제한해뒀다(`docs/API.md` 6장, 2026-09-04 확정).
@@ -19,7 +21,7 @@ class Child {
     return Child(
       childId: json['childId'] as int,
       name: json['name'] as String,
-      birthDate: DateTime.parse(json['birthDate'] as String),
+      birthDate: json['birthDate'] == null ? null : DateTime.parse(json['birthDate'] as String),
       relationship: json['relationship'] as String,
     );
   }

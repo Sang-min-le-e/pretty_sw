@@ -23,7 +23,8 @@ class SettingsCard extends StatelessWidget {
           BoxShadow(color: Color(0x14000000), offset: Offset(0, 1), blurRadius: 4),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 23, vertical: 16),
+      // Figma(내 정보): 소제목은 카드 위에서 15, 소제목→첫 줄 17, 줄 간격 18.
+      padding: const EdgeInsets.fromLTRB(23, 15, 23, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -32,10 +33,10 @@ class SettingsCard extends StatelessWidget {
               title!,
               style: const TextStyle(color: _labelColor, fontSize: 16, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 17),
           ],
           for (var i = 0; i < children.length; i++) ...[
-            if (i != 0) const SizedBox(height: 16),
+            if (i != 0) const SizedBox(height: 18),
             children[i],
           ],
         ],
@@ -118,10 +119,19 @@ class SettingsSwitchRow extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(color: _labelColor, fontSize: 16)),
         const Spacer(),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeTrackColor: _brandBlue,
+        // Figma의 스위치는 테두리 없는 납작한 iOS 스타일이라 adaptive로
+        // 그린다(iOS에서는 CupertinoSwitch).
+        // 기본 크기(51x31)면 줄이 Figma(40 간격)보다 커져서 높이 24로 줄여 맞춘다.
+        SizedBox(
+          height: 24,
+          child: FittedBox(
+            child: Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeTrackColor: _brandBlue,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
         ),
       ],
     );

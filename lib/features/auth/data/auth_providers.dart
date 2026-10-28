@@ -22,6 +22,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(getAccessUuid: session.getAccessUuid);
 });
 
+/// 이 기기에서 마지막으로 로그인한 시각("로그인 기록" 화면용).
+final lastLoginAtProvider = FutureProvider<DateTime?>((ref) {
+  return ref.watch(authSessionRepositoryProvider).getLastLoginAt();
+});
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return ApiAuthRepository(ref.watch(apiClientProvider), ref.watch(authSessionRepositoryProvider));
 });

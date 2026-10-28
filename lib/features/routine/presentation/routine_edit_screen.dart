@@ -46,10 +46,7 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
   }
 
   Future<void> _pickTime({required bool isStart}) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isStart ? _startTime : _endTime,
-    );
+    final picked = await pickTimeCupertino(context, isStart ? _startTime : _endTime);
     if (picked == null) return;
     setState(() {
       if (isStart) {
@@ -146,24 +143,11 @@ class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
                             style: TextStyle(color: kRoutineFormLabelColor, fontSize: 15),
                           ),
                           const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TimeField(
-                                  time: _startTime,
-                                  suffix: '부터',
-                                  onTap: () => _pickTime(isStart: true),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TimeField(
-                                  time: _endTime,
-                                  suffix: '까지',
-                                  onTap: () => _pickTime(isStart: false),
-                                ),
-                              ),
-                            ],
+                          TimeRangeRow(
+                            start: _startTime,
+                            end: _endTime,
+                            onTapStart: () => _pickTime(isStart: true),
+                            onTapEnd: () => _pickTime(isStart: false),
                           ),
                           const SizedBox(height: 18),
                           const Text(

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -36,13 +37,27 @@ class AvatarActions {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null) return;
 
+    final repository = _ref.read(avatarRepositoryProvider);
+    final previousPath = await repository.getAvatarPath();
+
     final docsDir = await getApplicationDocumentsDirectory();
-    // 매번 같은 파일 이름으로 저장해서 예전 사진을 자연스럽게 덮어쓴다 —
-    // 사진을 바꿀 때마다 기기에 파일이 계속 쌓이는 걸 막기 위해서다.
-    final savedPath = p.join(docsDir.path, 'profile_avatar${p.extension(picked.path)}');
+    // 고를 때마다 **새 파일 이름**으로 저장한다. 같은 이름으로 덮어쓰면 저장된 경로
+    // 문자열이 그대로라서 화면이 "안 바뀌었다"고 보고, Flutter 이미지 캐시도 예전
+    // 사진을 계속 보여준다(두 번째로 고른 사진이 안 바뀌던 원인).
+    final savedPath = p.join(
+      docsDir.path,
+      'profile_avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}',
+    );
     await File(picked.path).copy(savedPath);
 
-    await _ref.read(avatarRepositoryProvider).setAvatarPath(savedPath);
+    await repository.setAvatarPath(savedPath);
+
+    // 이전 사진 파일은 지워서 기기에 계속 쌓이지 않게 하고, 캐시에서도 뺀다.
+    if (previousPath != null && previousPath != savedPath) {
+      final previous = File(previousPath);
+      await FileImage(previous).evict();
+      if (await previous.exists()) await previous.delete();
+    }
     _ref.invalidate(avatarPathProvider);
   }
 

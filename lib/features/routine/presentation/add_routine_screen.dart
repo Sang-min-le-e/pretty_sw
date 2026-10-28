@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../children/data/child_providers.dart';
 import '../data/routine_providers.dart';
 import '../data/routine_template_providers.dart';
 import '../domain/new_routine.dart';
@@ -103,10 +104,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   }
 
   Future<void> _pickTime({required bool isStart}) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: isStart ? _startTime : _endTime,
-    );
+    final picked = await pickTimeCupertino(context, isStart ? _startTime : _endTime);
     if (picked == null) return;
     setState(() {
       if (isStart) {
@@ -197,6 +195,11 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
   }
 
   Future<void> _submit() async {
+    // 학생은 기기를 연결할 때 만들어지므로, 기기가 하나도 없으면 루틴을 붙일 곳이 없다.
+    if (ref.read(currentChildProvider) == null) {
+      _showMessage('기기를 먼저 연결해 주세요');
+      return;
+    }
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       _showMessage('루틴 이름을 입력해 주세요');
@@ -259,8 +262,9 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Figma: 제목 윗선이 화면 위에서 69, 화살표 x=37, 제목 x=59.
               Padding(
-                padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
+                padding: const EdgeInsets.fromLTRB(29, 6, 26, 0),
                 child: Row(
                   children: [
                     InkResponse(
@@ -279,7 +283,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
                       _titleForMode(),
                       style: const TextStyle(
@@ -291,14 +295,14 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 37),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 37),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('루틴 이름', style: TextStyle(color: _labelColor, fontSize: 15)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     PillField(
                       child: TextField(
                         controller: _titleController,
@@ -311,27 +315,14 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 15),
                     const Text('시간 설정', style: TextStyle(color: _labelColor, fontSize: 15)),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TimeField(
-                            time: _startTime,
-                            suffix: '부터',
-                            onTap: () => _pickTime(isStart: true),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TimeField(
-                            time: _endTime,
-                            suffix: '까지',
-                            onTap: () => _pickTime(isStart: false),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 5),
+                    TimeRangeRow(
+                      start: _startTime,
+                      end: _endTime,
+                      onTapStart: () => _pickTime(isStart: true),
+                      onTapEnd: () => _pickTime(isStart: false),
                     ),
                     if (widget.compound) ...[
                       const SizedBox(height: 22),
@@ -340,6 +331,25 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                       PillField(
                         child: Row(
                           children: [
+                            // Figma: 입력 칸 맨 앞에 "다음에 추가될 행동 번호" 배지.
+                            Container(
+                              width: 14,
+                              height: 13,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD9D9D9),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              child: Text(
+                                '${_steps.length + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: TextField(
                                 controller: _stepInputController,
@@ -356,7 +366,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                             InkResponse(
                               onTap: _addStep,
                               radius: 16,
-                              child: const Icon(Icons.add, color: _brandBlue),
+                              child: const Icon(Icons.add, size: 26, color: Color(0xFFCACACA)),
                             ),
                           ],
                         ),
@@ -406,34 +416,42 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
+                  // Figma: 어느 탭이든 패널 높이는 352로 같다.
+                  constraints: const BoxConstraints(minHeight: 352),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4F4F4),
                     borderRadius: BorderRadius.circular(25),
                   ),
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 11),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          for (final tab in _tabs) ...[
-                            if (tab != _tabs.first) const SizedBox(width: 6),
-                            Expanded(
-                              child: _TabChip(
-                                label: tab,
-                                active: tab == _activeTab,
-                                onTap: () => setState(() => _activeTab = tab),
+                      // Figma: 탭 알약 74x31, 간격 약 10.5, 달력보다 양쪽 3씩 안쪽.
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Row(
+                          children: [
+                            for (final tab in _tabs) ...[
+                              if (tab != _tabs.first) const SizedBox(width: 10.5),
+                              Expanded(
+                                child: _TabChip(
+                                  label: tab,
+                                  active: tab == _activeTab,
+                                  onTap: () => setState(() => _activeTab = tab),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 18),
+                      // Figma: 달력 탭은 월 제목까지 27, 반복 탭은 선택 상자까지 12.
+                      SizedBox(height: _activeTab == '반복' ? 12 : 27),
                       switch (_activeTab) {
                         '일반' => _MonthCalendar(
                           isSelected: (d) => _isSameDay(d, _selectedDate),
                           onSelectDate: (d) => setState(() => _selectedDate = d),
                         ),
                         '기간' => _MonthCalendar(
+                          connectRange: true,
                           isSelected: (d) => _isInPeriod(d),
                           onSelectDate: _onPeriodDateTap,
                         ),
@@ -466,13 +484,15 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                 ),
               ),
               if (widget.compound) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 2),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 37),
                   child: InkWell(
                     onTap: () => setState(() => _saveAsTemplate = !_saveAsTemplate),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      // Figma: "템플릿에 저장하기"는 가운데 정렬.
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
                       children: [
                         SvgPicture.asset(
                           _saveAsTemplate
@@ -491,7 +511,7 @@ class _AddRoutineScreenState extends ConsumerState<AddRoutineScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
+              SizedBox(height: widget.compound ? 9 : 33),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 49),
                 child: SizedBox(
@@ -598,10 +618,17 @@ class _TabChip extends StatelessWidget {
 /// 정해줘서, 하나의 달력 그리드로 세 가지 선택 방식(단일/기간/다중)을
 /// 전부 표현한다.
 class _MonthCalendar extends StatelessWidget {
-  const _MonthCalendar({required this.isSelected, required this.onSelectDate});
+  const _MonthCalendar({
+    required this.isSelected,
+    required this.onSelectDate,
+    this.connectRange = false,
+  });
 
   final bool Function(DateTime date) isSelected;
   final ValueChanged<DateTime> onSelectDate;
+
+  /// 같은 줄에서 이웃한 선택일을 하나의 파란 띠로 이어 그린다("기간" 탭, Figma 5-1).
+  final bool connectRange;
 
   static const _labels = ['일', '월', '화', '수', '목', '금', '토'];
   static const _sundayColor = Color(0xFFE71A1A);
@@ -634,19 +661,37 @@ class _MonthCalendar extends StatelessWidget {
         textColor = Colors.black;
       }
 
+      // 기간 탭: 앞뒤 날짜(같은 줄 안)도 선택돼 있으면 띠가 이어진다.
+      final joinLeft = connectRange && selected && column > 0 && day > 1 &&
+          isSelected(DateTime(month.year, month.month, day - 1));
+      final joinRight = connectRange && selected && column < 6 && day < daysInMonth &&
+          isSelected(DateTime(month.year, month.month, day + 1));
+      const pillRadius = Radius.circular(14.5);
+
       cells.add(
         InkResponse(
           onTap: () => onSelectDate(date),
           radius: 20,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 3.4),
             child: Container(
-              width: 29,
+              // 띠가 이어질 때는 칸 가장자리까지 늘려서 이웃 칸과 맞닿게 한다.
+              width: (joinLeft || joinRight) ? double.infinity : 29,
               height: 29,
               alignment: Alignment.center,
+              margin: EdgeInsets.only(left: joinLeft ? 0 : 0, right: 0),
+              // Figma: 선택한 날은 파란 원(기간은 띠), 오늘은 (선택 전이면) 흰 원.
               decoration: selected
-                  ? const BoxDecoration(color: _AddRoutineScreenState._brandBlue, shape: BoxShape.circle)
-                  : null,
+                  ? BoxDecoration(
+                      color: _AddRoutineScreenState._brandBlue,
+                      borderRadius: BorderRadius.horizontal(
+                        left: joinLeft ? Radius.zero : pillRadius,
+                        right: joinRight ? Radius.zero : pillRadius,
+                      ),
+                    )
+                  : DateUtils.isSameDay(date, now)
+                      ? const BoxDecoration(color: Colors.white, shape: BoxShape.circle)
+                      : null,
               child: Text('$day', style: TextStyle(color: textColor, fontSize: 15)),
             ),
           ),
@@ -676,7 +721,7 @@ class _MonthCalendar extends StatelessWidget {
             style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 27),
         Row(
           children: [
             for (final label in _labels)
@@ -687,6 +732,7 @@ class _MonthCalendar extends StatelessWidget {
               ),
           ],
         ),
+        const SizedBox(height: 16.5),
         ...rows,
       ],
     );
@@ -721,125 +767,153 @@ class _RepeatSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Figma(5-2): 반복 주기 상자 → 요일 알약 → 시작 날짜 상자 → 종료 상자.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('반복 요일', style: TextStyle(color: _labelColor, fontSize: 14)),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (var i = 0; i < weekdayLabels.length; i++)
-              _WeekdayDot(
-                label: weekdayLabels[i],
-                selected: selectedWeekdays.contains(i),
-                onTap: () => onToggleWeekday(i),
-              ),
+        // 서버가 지원하는 반복은 "매주"뿐이라 매월/매년은 눌러도 고를 수 없다.
+        PopupMenuButton<String>(
+          onSelected: (_) {},
+          position: PopupMenuPosition.under,
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: '매주', child: Text('매주')),
+            PopupMenuItem(enabled: false, child: Text('매월 (준비 중)')),
+            PopupMenuItem(enabled: false, child: Text('매년 (준비 중)')),
           ],
-        ),
-        const SizedBox(height: 16),
-        _SettingsRow(
-          label: '시작 날짜',
-          trailing: _DateButton(
-            date: start,
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: start,
-                firstDate: DateTime(start.year - 1),
-                lastDate: DateTime(start.year + 5),
-              );
-              if (picked != null) onStartChanged(picked);
-            },
-          ),
+          child: const _FieldBox(label: '반복 주기', value: '매주'),
         ),
         const SizedBox(height: 12),
-        _SettingsRow(
+        _WeekdayPills(
+          labels: weekdayLabels,
+          selected: selectedWeekdays,
+          onToggle: onToggleWeekday,
+        ),
+        const SizedBox(height: 24),
+        _FieldBox(
+          label: '시작 날짜',
+          value: '${start.year}년 ${start.month}월 ${start.day}일',
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: start,
+              firstDate: DateTime(start.year - 1),
+              lastDate: DateTime(start.year + 5),
+            );
+            if (picked != null) onStartChanged(picked);
+          },
+        ),
+        const SizedBox(height: 8),
+        // 서버의 WEEKLY는 끝나는 날이 있어야 날짜를 펼칠 수 있어서, Figma의
+        // "반복 기간: 없음" 대신 종료 날짜를 고르게 한다.
+        _FieldBox(
           label: '종료 날짜',
-          trailing: _DateButton(
-            date: end,
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: end,
-                firstDate: start,
-                lastDate: DateTime(start.year + 5),
-              );
-              if (picked != null) onEndChanged(picked);
-            },
-          ),
+          value: '${end.year}년 ${end.month}월 ${end.day}일',
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: end,
+              firstDate: start,
+              lastDate: DateTime(start.year + 5),
+            );
+            if (picked != null) onEndChanged(picked);
+          },
         ),
       ],
-    );
-  }
-}
-
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({required this.label, required this.trailing});
-
-  final String label;
-  final Widget trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14)),
-        trailing,
-      ],
-    );
-  }
-}
-
-class _DateButton extends StatelessWidget {
-  const _DateButton({required this.date, required this.onTap});
-
-  final DateTime date;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Text(
-        '${date.year}년 ${date.month}월 ${date.day}일',
-        style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14),
       ),
     );
   }
 }
 
-/// "반복" - "매주" 탭의 요일 하나(원 모양, 선택되면 파란 배경).
-class _WeekdayDot extends StatelessWidget {
-  const _WeekdayDot({required this.label, required this.selected, required this.onTap});
+/// 흰 바탕 + 옅은 테두리 + 오른쪽 ⌄ 가 붙은 선택 상자(Figma 반복 탭, 높이 48).
+class _FieldBox extends StatelessWidget {
+  const _FieldBox({required this.label, required this.value, this.onTap});
 
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkResponse(
-      onTap: onTap,
-      radius: 18,
-      child: Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: selected ? _AddRoutineScreenState._brandBlue : Colors.transparent,
+    final box = Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD9D9D9)),
+      ),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14)),
+          const Spacer(),
+          Text(value, style: const TextStyle(color: _RepeatSettings._labelColor, fontSize: 14)),
+          const SizedBox(width: 6),
+          const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFFA3A3A3)),
+        ],
+      ),
+    );
+    if (onTap == null) return box;
+    return InkWell(borderRadius: BorderRadius.circular(14), onTap: onTap, child: box);
+  }
+}
+
+/// 요일 7개. 선택된 요일이 붙어 있으면 하나의 파란 알약으로 이어지고(Figma의
+/// 화·수·목), 혼자 선택되면 원이 된다(일, 토).
+class _WeekdayPills extends StatelessWidget {
+  const _WeekdayPills({required this.labels, required this.selected, required this.onToggle});
+
+  final List<String> labels;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
+
+  static const _height = 32.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellWidth = constraints.maxWidth / labels.length;
+        final inset = (cellWidth - _height) / 2;
+        return Row(
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onToggle(i),
+                  child: _pill(i, inset),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _pill(int i, double inset) {
+    final on = selected.contains(i);
+    final joinLeft = on && i > 0 && selected.contains(i - 1);
+    final joinRight = on && i < labels.length - 1 && selected.contains(i + 1);
+    const radius = Radius.circular(_height / 2);
+    return Container(
+      height: _height,
+      margin: EdgeInsets.only(left: joinLeft ? 0 : inset, right: joinRight ? 0 : inset),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: on ? _AddRoutineScreenState._brandBlue : Colors.transparent,
+        borderRadius: BorderRadius.horizontal(
+          left: joinLeft ? Radius.zero : radius,
+          right: joinRight ? Radius.zero : radius,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : _RepeatSettings._labelColor,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+      ),
+      child: Text(
+        labels[i],
+        style: TextStyle(
+          color: on ? Colors.white : const Color(0xFFA3A3A3),
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

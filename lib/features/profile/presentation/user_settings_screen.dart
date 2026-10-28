@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/back_header.dart';
+import '../../../app/widgets/confirm_dialog.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/data/account_actions.dart';
 import '../../auth/data/auth_providers.dart';
@@ -82,21 +83,13 @@ class UserSettingsScreen extends ConsumerWidget {
     required String confirmLabel,
     bool withdraw = false,
   }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('취소')),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel, style: const TextStyle(color: Color(0xFFE71A1A))),
-          ),
-        ],
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: title,
+      message: content,
+      confirmLabel: confirmLabel,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       if (withdraw) {
         await ref.read(accountActionsProvider).withdraw();

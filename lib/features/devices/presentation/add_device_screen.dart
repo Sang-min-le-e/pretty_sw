@@ -102,8 +102,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
-              Row(
+              // Figma: 제목 글자 윗선이 화면 위에서 69, 화살표는 x=37, 제목은 x=59.
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 3),
+                child: Row(
                 children: [
                   InkResponse(
                     onTap: () {
@@ -131,7 +134,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   const Text(
                     '기기 추가하기',
                     style: TextStyle(
@@ -141,6 +144,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     ),
                   ),
                 ],
+                ),
               ),
               Expanded(
                 child: _step == 0 ? _ScanningStep(
@@ -203,26 +207,32 @@ class _ScanningStepState extends ConsumerState<_ScanningStep> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 24),
+        // Figma: 바깥 빛 무리(252)의 윗선이 화면 위에서 248, 로봇은 그 중심보다 6.5 위.
+        const SizedBox(height: 148),
         Center(
           child: PairingGlow(
-            child: SizedBox(
-              width: 143,
-              height: 149,
-              child: SvgPicture.asset('assets/images/device_icon.svg'),
+            color: const Color(0xFF4ABEFF),
+            child: Transform.translate(
+              offset: const Offset(0, -6.5),
+              child: SizedBox(
+                width: 143,
+                height: 149,
+                child: SvgPicture.asset('assets/images/device_icon.svg'),
+              ),
             ),
           ),
         ),
         const SizedBox(height: 24),
-        Text(
-          _error != null
-              ? '블루투스를 사용할 수 없어요. 설정에서 블루투스 권한을 확인해주세요.'
-              : _found.isEmpty
-                  ? '주변 기기를 찾는 중이에요...'
-                  : '연결할 기기를 선택해주세요',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: kDeviceOverviewLabelColor, fontSize: 15),
-        ),
+        // Figma에는 안내 문구가 없다. 오류나 기기 선택 안내처럼 사용자가 알아야
+        // 하는 경우에만 보여주고, 평소 "찾는 중" 상태에서는 숨긴다.
+        if (_error != null || _found.isNotEmpty)
+          Text(
+            _error != null
+                ? '블루투스를 사용할 수 없어요. 설정에서 블루투스 권한을 확인해주세요.'
+                : '연결할 기기를 선택해주세요',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: kDeviceOverviewLabelColor, fontSize: 15),
+          ),
         const SizedBox(height: 12),
         Expanded(
           child: ListView(
@@ -239,21 +249,27 @@ class _ScanningStepState extends ConsumerState<_ScanningStep> {
             ],
           ),
         ),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: widget.onNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kDeviceOverviewBrandBlue,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: const StadiumBorder(),
+        // Figma: 303x56 버튼이 가운데에 있고 화면 아래에서 47 떨어져 있다.
+        Center(
+          child: SizedBox(
+            width: 303,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: widget.onNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kDeviceOverviewBrandBlue,
+                foregroundColor: Colors.white,
+                // Figma는 항상 파란색이다. 기기를 고르기 전에는 눌러도 반응하지 않는다.
+                disabledBackgroundColor: kDeviceOverviewBrandBlue,
+                disabledForegroundColor: Colors.white,
+                elevation: 0,
+                shape: const StadiumBorder(),
+              ),
+              child: const Text('다음', style: TextStyle(fontSize: 22)),
             ),
-            child: const Text('다음', style: TextStyle(fontSize: 22)),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 13),
       ],
     );
   }

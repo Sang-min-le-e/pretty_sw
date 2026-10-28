@@ -167,24 +167,29 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma는 글자 로고를 화면 맨 위에서 43 아래에 두는데, 실제 폰에서는 상태
+    // 표시줄(시계)과 겹쳐서 로고가 가려진다. 그래서 Figma 위치 대신 상태 표시줄
+    // 영역(안전 영역) 바로 아래로 내려 로고와 알림 벨을 한 줄에 놓는다.
     return Container(
       color: Colors.white,
-      // 상태 표시줄(시계·배터리 아이콘) 영역과 겹치지 않도록 SafeArea로
-      // 감싼다. bottom: false 는 "아래쪽 안전 영역은 신경 안 써도 된다"는
-      // 뜻(이 바는 화면 맨 위에 있으니까).
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(31, 16, 31, 16),
-          child: Row(
-            children: [
-              SvgPicture.asset('assets/images/home_logo.svg', height: 30),
-              // Spacer: 남은 가로 공간을 전부 차지해서, 로고는 왼쪽 끝에
-              // 알림 벨은 오른쪽 끝에 붙게 밀어준다.
-              const Spacer(),
-              const _NotificationBellButton(),
-            ],
-          ),
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 6, bottom: 6),
+      child: const Padding(
+        // 벨 버튼은 바깥쪽에 10씩 터치 영역이 있어서 오른쪽을 그만큼 줄인다.
+        padding: EdgeInsets.only(left: 30, right: 24),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 69,
+              height: 25,
+              child: Image(
+                image: AssetImage('assets/images/splash_logo_tomo.png'),
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+            Spacer(),
+            _NotificationBellButton(),
+          ],
         ),
       ),
     );
@@ -224,7 +229,7 @@ class _NotificationBellButton extends ConsumerWidget {
                 // 벨 아이콘 기준 왼쪽 위로 살짝 벗어난 위치(음수 값)에
                 // 뱃지를 겹쳐 그린다.
                 top: -5,
-                right: -6,
+                right: -3,
                 child: Container(
                   width: 13,
                   height: 13,

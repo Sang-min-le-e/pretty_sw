@@ -13,7 +13,6 @@ import '../features/devices/presentation/devices_screen.dart';
 import '../features/devices/presentation/widgets/device_route_scope.dart';
 import '../features/devices/presentation/wifi_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
-import '../features/onboarding/presentation/child_info_screen.dart';
 import '../features/onboarding/presentation/guardian_info_screen.dart';
 import '../features/profile/presentation/language_screen.dart';
 import '../features/profile/presentation/login_history_screen.dart';
@@ -72,11 +71,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/onboarding/guardian-info',
       builder: (context, state) => const GuardianInfoScreen(),
-    ),
-    // 학생 등록 — 루틴 탭의 학생 선택 줄에서 들어온다.
-    GoRoute(
-      path: '/children/new',
-      builder: (context, state) => const ChildInfoScreen(),
     ),
 
     // 4) 하단 탭바로 이동하는 4개의 메인 화면.
