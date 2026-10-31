@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart'; // StateProvider
 
 import '../../../core/storage/local_storage_service.dart';
 import '../domain/app_notification.dart';
@@ -13,11 +14,18 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return LocalNotificationRepository(ref.watch(_localStorageServiceProvider));
 });
 
-final notificationListProvider = FutureProvider<List<AppNotification>>((ref) {
-  return ref.watch(notificationRepositoryProvider).getNotifications();
+/// 최신 알림이 맨 위로 오도록 정렬한 전체 알림.
+final notificationListProvider = FutureProvider<List<AppNotification>>((ref) async {
+  final list = await ref.watch(notificationRepositoryProvider).getNotifications();
+  return list..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
-/// 홈 화면 벨 아이콘 뱃지에 쓰는 개수. 0이면 뱃지 자체를 안 그린다.
+/// 홈 화면 벨 아이콘 뱃지에 쓰는 **읽지 않은** 알림 수. 0이면 뱃지 자체를 안 그린다.
 final notificationCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationListProvider).value?.length ?? 0;
+  final list = ref.watch(notificationListProvider).value ?? const [];
+  return list.where((n) => !n.read).length;
 });
+
+/// 방금 도착해서 화면 위에 잠깐 띄울(토스트) 알림. 토스트가 3초 뒤 내려가면 다시
+/// `null`이 된다. `NotificationToastHost`가 이 값을 보고 그린다.
+final incomingNotificationProvider = StateProvider<AppNotification?>((ref) => null);

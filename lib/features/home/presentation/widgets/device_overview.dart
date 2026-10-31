@@ -176,7 +176,60 @@ class _StatusRow extends StatelessWidget {
 const kDeviceCarouselEnabledColor = kDeviceOverviewBrandBlue;
 const kDeviceCarouselDisabledColor = Color(0xFFA9A9A9);
 
-/// 로봇 모양 기기 아바타 + 좌우의 "이전/다음 기기" 화살표.
+/// 기기 그림 한 개. 피그마에서 내보낸 기기 SVG는 그림자 여백까지 포함해서
+/// 기기 몸통보다 크다(좌우 5.85%, 위 2.17%, 아래 6.52% — Figma 응답의
+/// inset 값). [width]/[height]에 Figma의 기기 몸통 크기를 그대로 넘기면,
+/// 여백만큼 바깥으로 삐져나오게 그려서 몸통이 정확히 그 크기가 되게 한다.
+class DeviceAvatar extends StatelessWidget {
+  const DeviceAvatar(this.asset, {super.key, required this.width, required this.height});
+
+  final String asset;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: -width * 0.0585,
+            right: -width * 0.0585,
+            top: -height * 0.0217,
+            bottom: -height * 0.0652,
+            child: AssetIcon(asset),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 홈/기기 상세(8-1) 화면의 "상태 목록 + 기기 캐러셀" 묶음. Figma에서
+/// 상태 목록(y166)이 기기 그림(y180) 왼쪽 위에 겹쳐 놓여서, 둘을 위아래로
+/// 쌓지 않고 Stack으로 겹친다 — 기기 그림 가로 범위(x123~)와 상태 목록
+/// (x36~80)은 서로 안 겹치므로 탭 영역도 충돌하지 않는다.
+class DeviceHero extends StatelessWidget {
+  const DeviceHero({super.key, required this.statusList, required this.carousel});
+
+  final Widget statusList;
+  final Widget carousel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Padding(padding: const EdgeInsets.only(top: 14), child: carousel),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 38), child: statusList),
+      ],
+    );
+  }
+}
+
+/// 기기 아바타 + 좌우의 "이전/다음 기기" 화살표.
 /// 여러 개의 기기(예: 형제자매 각각의 워치)를 등록 순서대로 좌우로
 /// 넘겨보는 캐러셀 UI.
 ///
@@ -190,7 +243,7 @@ const kDeviceCarouselDisabledColor = Color(0xFFA9A9A9);
 class DeviceCarousel extends StatelessWidget {
   const DeviceCarousel({
     super.key,
-    this.iconAsset = 'assets/images/device_icon.svg',
+    this.iconAsset = 'assets/images/device_tomo_green.svg',
     this.onPrev,
     this.onNext,
     this.canGoPrev,
@@ -209,14 +262,14 @@ class DeviceCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 149,
+      height: 209,
       child: Row(
         children: [
           SizedBox(
             width: 103,
             child: Center(
               child: InkResponse(
-                onTap: onPrev ?? () {},
+                onTap: canGoPrev == false ? null : (onPrev ?? () {}),
                 radius: 20,
                 child: RotatedBox(
                   quarterTurns: 3,
@@ -239,18 +292,14 @@ class DeviceCarousel extends StatelessWidget {
           ),
           Expanded(
             child: Center(
-              child: SizedBox(
-                width: 143,
-                height: 149,
-                child: AssetIcon(iconAsset),
-              ),
+              child: DeviceAvatar(iconAsset, width: 155, height: 209),
             ),
           ),
           SizedBox(
             width: 92,
             child: Center(
               child: InkResponse(
-                onTap: onNext ?? () {},
+                onTap: canGoNext == false ? null : (onNext ?? () {}),
                 radius: 20,
                 child: RotatedBox(
                   quarterTurns: 1,
@@ -332,17 +381,20 @@ class NoConnectedDeviceHero extends StatelessWidget {
   }
 }
 
-/// 캐러셀 아래 작은 점 5개(첫 번째만 파란색=선택됨, 나머지는 회색).
-/// 기기 상세 관리 화면에만 있고, 홈 화면 리디자인에서는 빠졌다.
+/// 캐러셀 아래 작은 점. 연결된 기기 수만큼 그리고, [activeIndex]번째만
+/// 파란색(선택됨)이다. 기기 상세 관리 화면에만 있다.
 class DevicePaginationDots extends StatelessWidget {
-  const DevicePaginationDots({super.key});
+  const DevicePaginationDots({super.key, required this.count, required this.activeIndex});
+
+  final int count;
+  final int activeIndex;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        final active = index == 0;
+      children: List.generate(count, (index) {
+        final active = index == activeIndex;
         return Container(
           width: 6,
           height: 6,
@@ -394,9 +446,9 @@ class DeviceStatusHeaderRow extends StatelessWidget {
 /// 다시 처음 색/아이콘부터 순환).
 const kDeviceDotColors = [Color(0xFFC8E093), Color(0xFFE1E1E1), Color(0xFFAA97D0)];
 const kDeviceIconAssets = [
-  'assets/images/member_device_green.svg',
-  'assets/images/member_device_gray.svg',
-  'assets/images/member_device_purple.svg',
+  'assets/images/device_tomo_green.svg',
+  'assets/images/device_tomo_white.svg',
+  'assets/images/device_tomo_purple.svg',
 ];
 
 /// [index]번째로 등록된 기기에 배정할 아이콘 경로(팔레트 순환).
@@ -472,7 +524,7 @@ class ConnectedDevicesCard extends ConsumerWidget {
             for (var i = 0; i < devices.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
               _ConnectedDeviceRow(
-                color: deviceDotColorFor(i),
+                color: deviceDotColorFor(ref.watch(deviceColorIndexProvider(devices[i].deviceId))),
                 name: '${devices[i].name}님의 기기',
               ),
             ],
@@ -588,26 +640,13 @@ class CurrentRoutineCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text(
-                '현재 루틴',
-                style: TextStyle(
-                  color: kDeviceOverviewCaptionColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              Spacer(),
-              RotatedBox(
-                quarterTurns: 1,
-                child: SizedBox(
-                  width: 7,
-                  height: 4,
-                  child: AssetIcon('assets/images/home_chevron_small.svg'),
-                ),
-              ),
-            ],
+          const Text(
+            '현재 루틴',
+            style: TextStyle(
+              color: kDeviceOverviewCaptionColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           const SizedBox(height: 8),
           if (routine == null)

@@ -207,18 +207,16 @@ class _ScanningStepState extends ConsumerState<_ScanningStep> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Figma: 바깥 빛 무리(252)의 윗선이 화면 위에서 248, 로봇은 그 중심보다 6.5 위.
+        // Figma 8-6: 바깥 빛 무리(252)의 윗선이 화면 위에서 248, 기기(121x163)는
+        // 그 중심에 놓인다.
         const SizedBox(height: 148),
         Center(
           child: PairingGlow(
             color: const Color(0xFF4ABEFF),
-            child: Transform.translate(
-              offset: const Offset(0, -6.5),
-              child: SizedBox(
-                width: 143,
-                height: 149,
-                child: SvgPicture.asset('assets/images/device_icon.svg'),
-              ),
+            child: const DeviceAvatar(
+              'assets/images/device_tomo_green.svg',
+              width: 121,
+              height: 163,
             ),
           ),
         ),

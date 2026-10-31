@@ -15,8 +15,10 @@ class LocalStorageService {
     'routines',
     'routine_templates',
     'devices',
+    'device_colors',
     'profile',
     'notifications',
+    'notification_state',
   ];
 
   Future<Box<Map>> openBox(String name) => Hive.openBox<Map>(name);

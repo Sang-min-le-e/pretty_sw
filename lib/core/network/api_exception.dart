@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 /// 백엔드 공통 에러 응답(`docs/API.md` 2-2)을 앱 코드에서 다루기 쉬운
 /// 예외 하나로 바꾼 것. `code`로 분기하고 `message`는 그대로 사용자에게
@@ -28,6 +29,8 @@ Never throwAsApiException(DioException e) {
       statusCode: e.response?.statusCode,
     );
   }
+  // 화면에는 같은 문구만 나가서 원인을 알 수 없으므로 개발 중 로그에만 남긴다.
+  debugPrint('NETWORK_ERROR ${e.requestOptions.method} ${e.requestOptions.uri} → ${e.type}: ${e.error ?? e.message}');
   throw ApiException(
     code: 'NETWORK_ERROR',
     message: '서버에 연결할 수 없어요. 네트워크 상태를 확인해주세요.',

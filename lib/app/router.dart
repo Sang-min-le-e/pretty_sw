@@ -13,6 +13,7 @@ import '../features/devices/presentation/devices_screen.dart';
 import '../features/devices/presentation/widgets/device_route_scope.dart';
 import '../features/devices/presentation/wifi_settings_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/notifications/presentation/notification_list_screen.dart';
 import '../features/onboarding/presentation/guardian_info_screen.dart';
 import '../features/profile/presentation/language_screen.dart';
 import '../features/profile/presentation/login_history_screen.dart';
@@ -79,6 +80,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/', // 홈 탭 — 내 기기 상태 / 위치·와이파이 / 현재 루틴
       builder: (context, state) => const HomeScreen(),
+    ),
+    GoRoute(
+      path: '/notifications', // 홈 벨 아이콘 → 알림 목록
+      builder: (context, state) => const NotificationListScreen(),
     ),
     GoRoute(
       path: '/routine', // 루틴(달력) 탭

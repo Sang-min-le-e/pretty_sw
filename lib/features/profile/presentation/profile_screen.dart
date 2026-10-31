@@ -136,7 +136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 11),
               SettingsCard(
                 children: [
-                  const SettingsValueRow(label: '앱 버전', value: '0.1.0'),
+                  const SettingsValueRow(label: '앱 버전', value: '1.0.0'),
                   SettingsChevronRow(label: '로그아웃', onTap: () => _confirmLogout(context)),
                   // Figma에서는 "탈퇴하기"도 다른 줄과 같은 색이다.
                   SettingsChevronRow(label: '탈퇴하기', onTap: () => _confirmWithdraw(context)),

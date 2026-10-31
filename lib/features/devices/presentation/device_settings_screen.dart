@@ -32,6 +32,22 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
   final _memoController = TextEditingController();
   bool _busy = false;
 
+  /// 색 고르기 창에서 고른 팔레트 인덱스. 닉네임처럼 "완료"를 눌러야
+  /// 저장되므로, 그 전까지는 이 화면에서만 미리 보여준다(null = 안 바꿈).
+  int? _pickedColor;
+
+  Future<void> _pickColor(int current) async {
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => _DeviceColorSheet(selected: current),
+    );
+    if (picked != null && mounted) setState(() => _pickedColor = picked);
+  }
+
   @override
   void dispose() {
     _nicknameController.dispose();
@@ -70,12 +86,16 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
 
   Future<void> _save() async {
     final nickname = _nicknameController.text.trim();
-    if (nickname.isEmpty || nickname == widget.deviceOwnerName) {
+    final renamed = nickname.isNotEmpty && nickname != widget.deviceOwnerName;
+    final pickedColor = _pickedColor;
+    if (!renamed && pickedColor == null) {
       context.pop();
       return;
     }
     await _run(() async {
-      await ref.read(deviceActionsProvider).renameDevice(widget.deviceId, nickname);
+      final actions = ref.read(deviceActionsProvider);
+      if (pickedColor != null) await actions.setDeviceColor(widget.deviceId, pickedColor);
+      if (renamed) await actions.renameDevice(widget.deviceId, nickname);
       if (mounted) context.pop();
     });
   }
@@ -97,6 +117,10 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 홈/기기 관리 그리드와 같은 색(고른 색 또는 등록 순번 색)에서 시작하고,
+    // 색 고르기 창에서 바꾸면 저장 전에도 바로 바뀐 색으로 보여준다.
+    final colorIndex = _pickedColor ??
+        ref.watch(deviceColorIndexProvider(widget.deviceId)) % kDeviceIconAssets.length;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -142,10 +166,37 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: AssetIcon('assets/images/device_icon.svg'),
+                  // Figma 8-5: 기기 75x101 + 오른쪽 아래 "+" 배지(27, 테두리 포함 33).
+                  // 기기나 배지를 누르면 색 고르기 창이 열린다.
+                  GestureDetector(
+                    onTap: () => _pickColor(colorIndex),
+                    child: SizedBox(
+                      width: 85,
+                      height: 113,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          DeviceAvatar(deviceIconAssetFor(colorIndex), width: 75, height: 101),
+                          const Positioned(
+                            left: 52,
+                            top: 80,
+                            width: 33,
+                            height: 33,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                AssetIcon('assets/images/device_color_badge_bg.svg'),
+                                SizedBox(
+                                  width: 16.66,
+                                  height: 16.66,
+                                  child: AssetIcon('assets/images/device_color_badge_plus.svg'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -228,6 +279,78 @@ class _DeviceSettingsScreenState extends ConsumerState<DeviceSettingsScreen> {
               const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 기기 색 고르기 창. Figma에 이 창의 디자인이 없어서 기기 관리 그리드
+/// 카드와 같은 스타일(흰 바탕, 둥근 모서리)로 맞췄다. 색을 누르면 그
+/// 팔레트 인덱스를 돌려주며 닫힌다.
+class _DeviceColorSheet extends StatelessWidget {
+  const _DeviceColorSheet({required this.selected});
+
+  final int selected;
+
+  static const _labels = ['연두', '흰색', '보라'];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '기기 색상',
+              style: TextStyle(
+                color: kDeviceOverviewLabelColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (var i = 0; i < kDeviceIconAssets.length; i++)
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(i),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 88,
+                          height: 108,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: i == selected
+                                  ? kDeviceOverviewBrandBlue
+                                  : const Color(0xFFE5E5E5),
+                              width: i == selected ? 2 : 1,
+                            ),
+                          ),
+                          child: DeviceAvatar(kDeviceIconAssets[i], width: 56, height: 75),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _labels[i],
+                          style: TextStyle(
+                            color: kDeviceOverviewLabelColor,
+                            fontSize: 13,
+                            fontWeight: i == selected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

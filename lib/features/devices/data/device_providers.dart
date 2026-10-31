@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/legacy.dart'; // StateProvider (riverpod 3부�
 
 import '../../../core/ble/watch_gatt.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/local_storage_service.dart';
 import '../../auth/data/auth_providers.dart';
 import '../../children/data/child_providers.dart';
 import '../../watch_connection/data/watch_connection_providers.dart';
 import '../domain/connected_device.dart';
+import 'device_color_repository.dart';
 import 'device_repository.dart';
 import 'wifi_credentials.dart';
 
@@ -129,5 +131,37 @@ class DeviceActions {
   Future<void> deleteDevice(int deviceId) async {
     await _ref.read(deviceRepositoryProvider).deleteDevice(deviceId);
     _ref.invalidate(deviceListProvider);
+    // 지운 기기가 고른 색이 남아 있으면 안 되므로 같이 지운다.
+    await _ref.read(deviceColorRepositoryProvider).remove(deviceId);
+    _ref.invalidate(deviceColorOverridesProvider);
+  }
+
+  /// 기기 설정에서 고른 색(팔레트 인덱스)을 이 휴대폰에 저장한다.
+  Future<void> setDeviceColor(int deviceId, int colorIndex) async {
+    await _ref.read(deviceColorRepositoryProvider).setColor(deviceId, colorIndex);
+    _ref.invalidate(deviceColorOverridesProvider);
   }
 }
+
+final _localStorageServiceProvider = Provider((ref) => LocalStorageService());
+
+final deviceColorRepositoryProvider = Provider<DeviceColorRepository>((ref) {
+  return LocalDeviceColorRepository(ref.watch(_localStorageServiceProvider));
+});
+
+/// 사용자가 직접 고른 기기 색(`deviceId → 팔레트 인덱스`).
+final deviceColorOverridesProvider = FutureProvider<Map<int, int>>((ref) {
+  return ref.watch(deviceColorRepositoryProvider).getAll();
+});
+
+/// [deviceId] 기기에 칠할 팔레트 인덱스. 기기 설정에서 고른 색이 있으면 그
+/// 색, 없으면 등록 순번 색(1번째 연두 → 2번째 흰색 → 3번째 보라 순환)이다.
+/// 홈 캐러셀·기기 관리 그리드·상세·설정·"연결된 기기" 점이 전부 이걸 써서
+/// 같은 기기는 어느 화면에서나 같은 색으로 보인다.
+final deviceColorIndexProvider = Provider.family<int, int>((ref, deviceId) {
+  final picked = ref.watch(deviceColorOverridesProvider).value?[deviceId];
+  if (picked != null) return picked;
+  final devices = ref.watch(deviceListProvider).value ?? const [];
+  final position = devices.indexWhere((d) => d.deviceId == deviceId);
+  return position < 0 ? 0 : position;
+});

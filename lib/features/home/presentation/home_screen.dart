@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../app/widgets/bottom_nav_bar.dart';
 import '../../devices/data/device_providers.dart';
 import '../../devices/domain/connected_device.dart';
+import '../../notifications/data/completion_watcher.dart';
 import '../../notifications/data/notification_providers.dart';
+import '../../notifications/presentation/widgets/notification_popup.dart';
 import 'widgets/device_overview.dart';
 
 /// Figma: 예소 / 홈화면 (node-id 392:5304, "앱 초안 3" 프레임 안).
@@ -19,13 +21,14 @@ import 'widgets/device_overview.dart';
 /// 똑같은 디자인이라 `widgets/device_overview.dart`에 공용 위젯으로
 /// 빼뒀다 — 이 파일은 그 공용 위젯들을 어떤 순서로 배치할지와, 이 화면
 /// 고유의 상단 바만 담당한다.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static const _bg = Color(0xFFF4F4F4); // 화면 배경(연회색)
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(completionWatcherProvider); // 기기 완료 감지 시작(앱이 끝날 때까지 유지)
     return Scaffold(
       backgroundColor: _bg,
       // 화면 내용이 기기 높이보다 길어질 수 있어서(작은 화면 대비)
@@ -129,27 +132,26 @@ class _SelectedDevicePanel extends ConsumerWidget {
         // 온라인 / 연결됨 / 배터리 상태 3줄. 실제 BLE 텔레메트리가 아직
         // 연결되지 않아서(CLAUDE.md 참고), "목록에 있으면 온라인"이라는
         // 가정하에 고정값을 보여준다.
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 38),
-          child: DeviceStatusList(),
-        ),
-        const SizedBox(height: 20),
-        // 로봇 기기 아바타 + 좌우 이전/다음 화살표. 등록 순서를 따라
+        // 기기 아바타 + 좌우 이전/다음 화살표. 등록 순서를 따라
         // [selectedDeviceIndexProvider]를 움직인다 — 맨 앞/끝에서는
         // 더 넘길 기기가 없으므로 화살표가 회색으로 바뀌고 눌러도
         // 반응하지 않는다(순환하지 않음).
-        DeviceCarousel(
-          iconAsset: deviceIconAssetFor(index),
-          canGoPrev: canGoPrev,
-          canGoNext: canGoNext,
-          onPrev: canGoPrev
-              ? () => ref.read(selectedDeviceIndexProvider.notifier).state = index - 1
-              : null,
-          onNext: canGoNext
-              ? () => ref.read(selectedDeviceIndexProvider.notifier).state = index + 1
-              : null,
+        DeviceHero(
+          statusList: const DeviceStatusList(),
+          carousel: DeviceCarousel(
+            iconAsset: deviceIconAssetFor(ref.watch(deviceColorIndexProvider(device.deviceId))),
+            canGoPrev: canGoPrev,
+            canGoNext: canGoNext,
+            onPrev: canGoPrev
+                ? () => ref.read(selectedDeviceIndexProvider.notifier).state = index - 1
+                : null,
+            onNext: canGoNext
+                ? () => ref.read(selectedDeviceIndexProvider.notifier).state = index + 1
+                : null,
+          ),
         ),
-        const SizedBox(height: 48),
+        // Figma: 기기 그림 아랫선(y389) → "기기 상태"(y477).
+        const SizedBox(height: 88),
         // "기기 상태" 소제목 + "3분전 동기화됨" 캡션
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 40),
@@ -197,8 +199,7 @@ class _TopBar extends StatelessWidget {
 }
 
 /// 알림 벨 아이콘 + 우측 상단에 겹쳐진 빨간 알림 개수 뱃지.
-/// [notificationCountProvider]가 0이면 뱃지 자체를 안 그린다 — 지금은
-/// 알림을 발생시키는 기능이 없어서 항상 이 상태다. 뱃지가 벨 아이콘
+/// [notificationCountProvider](안 읽은 알림 수)가 0이면 뱃지 자체를 안 그린다. 뱃지가 벨 아이콘
 /// 바깥으로 살짝 삐져나오게 그려야 해서 Stack + Positioned를 쓴다(일반
 /// Row/Column으로는 이렇게 "겹치는" 배치를 할 수 없다).
 class _NotificationBellButton extends ConsumerWidget {
@@ -209,7 +210,7 @@ class _NotificationBellButton extends ConsumerWidget {
     final count = ref.watch(notificationCountProvider);
 
     return InkResponse(
-      onTap: () {}, // 알림 화면이 아직 없어서 지금은 반응 없음
+      onTap: () => showNotificationPopup(Navigator.of(context), fromBell: true),
       radius: 24,
       child: Padding(
         padding: const EdgeInsets.all(10),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../features/notifications/presentation/widgets/notification_toast_host.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -21,6 +22,8 @@ class RoutineApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: appRouter,
+      // 새 알림이 오면 어느 화면에서든 위에 토스트가 뜬다.
+      builder: (context, child) => NotificationToastHost(child: child),
     );
   }
 }

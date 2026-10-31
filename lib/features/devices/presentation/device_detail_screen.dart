@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/widgets/bottom_nav_bar.dart';
 import '../../home/presentation/widgets/device_overview.dart';
+import '../data/device_providers.dart';
 
 /// Figma: 예소 / "8-1 기기 관리 상세" (node-id 405:6598, "앱 초안 3" 프레임
 /// 안). "기기 관리" 그리드 화면에서 기기 카드 하나를 누르면 도착한다.
@@ -11,7 +13,7 @@ import '../../home/presentation/widgets/device_overview.dart';
 /// 상단 바(뒤로가기 + "상세 기기 관리" + 설정 톱니바퀴)와, 캐러셀 아래
 /// 페이지네이션 점만 빼면 홈 화면과 완전히 같은 레이아웃이라
 /// `widgets/device_overview.dart`의 공용 위젯을 그대로 재사용한다.
-class DeviceDetailScreen extends StatelessWidget {
+class DeviceDetailScreen extends ConsumerWidget {
   const DeviceDetailScreen({
     super.key,
     required this.deviceId,
@@ -24,7 +26,10 @@ class DeviceDetailScreen extends StatelessWidget {
   static const _bg = Color(0xFFF4F4F4);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 점은 실제 연결된 기기 수만큼, 이 화면의 기기가 몇 번째인지 표시한다.
+    final devices = ref.watch(deviceListProvider).value ?? const [];
+    final position = devices.indexWhere((d) => d.deviceId == deviceId);
     return Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
@@ -56,18 +61,29 @@ class DeviceDetailScreen extends StatelessWidget {
                       child: DeviceTitleRow(deviceOwnerName: deviceOwnerName),
                     ),
                     const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 38),
-                      child: DeviceStatusList(
+                    DeviceHero(
+                      statusList: DeviceStatusList(
                         onWifiTap: () =>
                             context.push('/devices/$deviceId/wifi'),
                       ),
+                      // 이 화면은 기기 한 대의 상세라 좌우로 넘길 곳이 없다 → 화살표를
+                      // 회색(비활성)으로 둔다(파란 불빛 = "넘길 수 있음"으로 보이므로).
+                      // 기기 색은 홈/기기 관리 그리드와 같은 색(고른 색 또는 등록 순번 색)을 쓴다.
+                      carousel: DeviceCarousel(
+                        iconAsset: deviceIconAssetFor(ref.watch(deviceColorIndexProvider(deviceId))),
+                        canGoPrev: false,
+                        canGoNext: false,
+                      ),
                     ),
-                    const SizedBox(height: 20),
-                    const DeviceCarousel(),
-                    const SizedBox(height: 12),
-                    const Center(child: DevicePaginationDots()),
+                    // Figma 8-1: 기기 아랫선(y389) → 점(y425~431) → "기기 상태"(y477).
                     const SizedBox(height: 36),
+                    Center(
+                      child: DevicePaginationDots(
+                        count: devices.isEmpty ? 1 : devices.length,
+                        activeIndex: position < 0 ? 0 : position,
+                      ),
+                    ),
+                    const SizedBox(height: 46),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 40),
                       child: DeviceStatusHeaderRow(),

@@ -54,7 +54,9 @@ class DevicesScreen extends ConsumerWidget {
                     for (var i = 0; i < devices.length; i++)
                       _DeviceGridCard(
                         name: devices[i].name,
-                        iconAsset: deviceIconAssetFor(i),
+                        iconAsset: deviceIconAssetFor(
+                          ref.watch(deviceColorIndexProvider(devices[i].deviceId)),
+                        ),
                         onTap: () => context.push('/devices/${devices[i].deviceId}'),
                       ),
                     _AddDeviceGridCard(
@@ -114,11 +116,7 @@ class _DeviceGridCard extends StatelessWidget {
             ),
             Expanded(
               child: Center(
-                child: SizedBox(
-                  width: 86,
-                  height: 89,
-                  child: AssetIcon(iconAsset),
-                ),
+                child: DeviceAvatar(iconAsset, width: 68, height: 92),
               ),
             ),
             Text(
