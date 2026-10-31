@@ -291,19 +291,19 @@ class _NotificationBellButton extends ConsumerWidget {
                 // 뱃지를 겹쳐 그린다.
                 top: -5,
                 right: -3,
-                // Figma: 13x13 빨간 원. 두 자리 이상이면 원 안에 안 들어가서
-                // 같은 높이의 알약 모양으로 옆으로 늘리고, 100 이상은 "99+"로 줄인다.
+                // Figma: 13x13 빨간 원. 두 자리 숫자는 원 안에서 찌그러지므로
+                // 10 이상은 "9+"로 줄인다(9pt "9+"는 약 10~11px이라 원 안에 들어간다).
+                // 혹시 글꼴 차이로 넘치면 minWidth 덕에 원 대신 옆으로 조금 늘어난다.
                 child: Container(
                   height: 13,
                   constraints: const BoxConstraints(minWidth: 13),
-                  padding: EdgeInsets.symmetric(horizontal: count > 9 ? 3 : 0),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: const Color(0xFFE71A1A),
                     borderRadius: BorderRadius.circular(6.5),
                   ),
                   child: Text(
-                    count > 99 ? '99+' : '$count',
+                    count > 9 ? '9+' : '$count',
                     style: const TextStyle(
                       fontSize: 9,
                       color: Colors.white,
