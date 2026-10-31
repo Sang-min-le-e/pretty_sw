@@ -29,6 +29,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(completionWatcherProvider); // 기기 완료 감지 시작(앱이 끝날 때까지 유지)
+    ref.watch(deviceStatusRefresherProvider); // 배터리·동기화 시각 주기 갱신(홈이 보이는 동안)
     return Scaffold(
       backgroundColor: _bg,
       // 화면 내용이 기기 높이보다 길어질 수 있어서(작은 화면 대비)
@@ -197,7 +198,7 @@ class _SelectedDevicePanel extends ConsumerWidget {
         // 더 넘길 기기가 없으므로 화살표가 회색으로 바뀌고 눌러도
         // 반응하지 않는다(순환하지 않음).
         DeviceHero(
-          statusList: const DeviceStatusList(),
+          statusList: DeviceStatusList(device: device),
           carousel: DeviceCarousel(
             iconAsset: deviceIconAssetFor(ref.watch(deviceColorIndexProvider(device.deviceId))),
             canGoPrev: canGoPrev,
@@ -213,9 +214,9 @@ class _SelectedDevicePanel extends ConsumerWidget {
         // Figma: 기기 그림 아랫선(y389) → "기기 상태"(y477).
         const SizedBox(height: 88),
         // "기기 상태" 소제목 + "3분전 동기화됨" 캡션
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 40),
-          child: DeviceStatusHeaderRow(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: DeviceStatusHeaderRow(device: device),
         ),
         const SizedBox(height: 12),
       ],

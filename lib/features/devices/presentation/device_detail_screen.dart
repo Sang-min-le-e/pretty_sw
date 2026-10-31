@@ -29,7 +29,9 @@ class DeviceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 점은 실제 연결된 기기 수만큼, 이 화면의 기기가 몇 번째인지 표시한다.
     final devices = ref.watch(deviceListProvider).value ?? const [];
+    ref.watch(deviceStatusRefresherProvider); // 배터리·동기화 시각 주기 갱신
     final position = devices.indexWhere((d) => d.deviceId == deviceId);
+    final device = position < 0 ? null : devices[position];
     return Scaffold(
       backgroundColor: _bg,
       body: SafeArea(
@@ -63,6 +65,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     DeviceHero(
                       statusList: DeviceStatusList(
+                        device: device,
                         onWifiTap: () =>
                             context.push('/devices/$deviceId/wifi'),
                       ),
@@ -84,9 +87,9 @@ class DeviceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 46),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
-                      child: DeviceStatusHeaderRow(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: DeviceStatusHeaderRow(device: device),
                     ),
                     const SizedBox(height: 12),
                     Padding(

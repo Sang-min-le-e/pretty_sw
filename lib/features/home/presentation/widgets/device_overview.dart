@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../devices/data/device_providers.dart';
+import '../../../devices/domain/connected_device.dart';
 import '../../../routine/data/routine_providers.dart';
 
 /// 홈 화면(Figma node 392:5304)과 기기 상세 관리 화면(node 405:6598)이
@@ -89,7 +90,11 @@ class DeviceTitleRow extends StatelessWidget {
 
 /// "온라인 / 연결됨 / 95%" 3줄짜리 기기 상태 요약 목록.
 class DeviceStatusList extends StatelessWidget {
-  const DeviceStatusList({super.key, this.onWifiTap});
+  const DeviceStatusList({super.key, this.device, this.onWifiTap});
+
+  /// 상태를 보여줄 기기. 배터리·온라인 여부는 이 기기의 서버 값이다. 없으면(아직
+  /// 못 찾음) 온라인/연결 안 됨, 배터리 `--%`로 보여준다.
+  final ConnectedDevice? device;
 
   /// "연결됨"(WIFI) 줄을 눌렀을 때 할 일. 기기 상세 관리 화면에서만
   /// WIFI 설정 화면으로 연결하고(Figma "8-1의 WIFI칸 '>' 클릭 시"),
@@ -98,14 +103,15 @@ class DeviceStatusList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final online = device?.isOnline ?? false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _StatusRow(label: '온라인', useOnlineDot: true),
+        _StatusRow(label: online ? '온라인' : '오프라인', useOnlineDot: true, online: online),
         const SizedBox(height: 5),
-        _StatusRow(label: '연결됨', useWifiArc: true, onTap: onWifiTap),
+        _StatusRow(label: online ? '연결됨' : '연결 안 됨', useWifiArc: true, onTap: onWifiTap),
         const SizedBox(height: 5),
-        const _StatusRow(label: '95%', useBattery: true),
+        _StatusRow(label: device?.batteryLabel ?? '--%', useBattery: true),
       ],
     );
   }
@@ -120,6 +126,7 @@ class _StatusRow extends StatelessWidget {
     this.useOnlineDot = false,
     this.useWifiArc = false,
     this.useBattery = false,
+    this.online = true,
     this.onTap,
   });
 
@@ -127,6 +134,7 @@ class _StatusRow extends StatelessWidget {
   final bool useOnlineDot;
   final bool useWifiArc;
   final bool useBattery;
+  final bool online;
   final VoidCallback? onTap;
 
   @override
@@ -136,8 +144,8 @@ class _StatusRow extends StatelessWidget {
       rowIcon = Container(
         width: 7,
         height: 7,
-        decoration: const BoxDecoration(
-          color: Color(0xFF1ED342),
+        decoration: BoxDecoration(
+          color: online ? const Color(0xFF1ED342) : const Color(0xFFBDBDBD),
           shape: BoxShape.circle,
         ),
       );
@@ -419,15 +427,17 @@ class DevicePaginationDots extends StatelessWidget {
   }
 }
 
-/// "기기 상태" 소제목 + 오른쪽에 작게 붙는 "3분전 동기화됨" 캡션.
+/// "기기 상태" 소제목 + 오른쪽에 작게 붙는 "3분전 동기화됨" 캡션(서버의 마지막 동기화 시각).
 class DeviceStatusHeaderRow extends StatelessWidget {
-  const DeviceStatusHeaderRow({super.key});
+  const DeviceStatusHeaderRow({super.key, this.device});
+
+  final ConnectedDevice? device;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Text(
+        const Text(
           '기기 상태',
           style: TextStyle(
             color: kDeviceOverviewLabelColor,
@@ -435,10 +445,10 @@ class DeviceStatusHeaderRow extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(width: 6),
+        const SizedBox(width: 6),
         Text(
-          '3분전 동기화됨',
-          style: TextStyle(
+          device?.syncLabel ?? '',
+          style: const TextStyle(
             color: kDeviceOverviewStatusColor,
             fontSize: 10,
             fontWeight: FontWeight.w300,

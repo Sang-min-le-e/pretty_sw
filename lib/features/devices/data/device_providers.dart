@@ -33,6 +33,16 @@ final deviceListProvider = FutureProvider<List<ConnectedDevice>>((ref) async {
   ]..sort((a, b) => a.deviceId.compareTo(b.deviceId));
 });
 
+/// 기기의 배터리·동기화 시각은 기기가 서버에 올릴 때만 바뀌고 앱에는 푸시가 없어서,
+/// 이 provider를 보는 동안(홈·기기 상세) 15초마다 기기 목록을 다시 받는다.
+/// `autoDispose`라 그 화면들이 사라지면 멈춘다.
+final deviceStatusRefresherProvider = Provider.autoDispose<void>((ref) {
+  final timer = Timer.periodic(const Duration(seconds: 15), (_) {
+    ref.invalidate(deviceListProvider);
+  });
+  ref.onDispose(timer.cancel);
+});
+
 /// 홈 화면 캐러셀에서 지금 보고 있는 기기의 [deviceListProvider] 안
 /// 인덱스. 화면 쪽에서 목록 길이로 나머지 연산(모듈로)해서 넘겨받아
 /// 안전 범위로 감싸 쓴다(기기가 삭제돼 목록이 줄어들어도 범위를
@@ -117,6 +127,15 @@ class DeviceActions {
       try {
         await repository.deleteDevice(ticket.deviceId); // 남은 PENDING 정리
       } catch (_) {}
+      // 이 페어링을 위해 자동으로 만든 자녀도 지운다 — 안 지우면 시도할 때마다 기기 없는
+      // 빈 자녀가 쌓여 자녀 칩과 기기 선택에 보인다.
+      try {
+        await _ref.read(childRepositoryProvider).deleteChild(child.childId);
+      } catch (_) {}
+      _ref.invalidate(childListProvider);
+      if (_ref.read(selectedChildIdProvider) == child.childId) {
+        _ref.read(selectedChildIdProvider.notifier).state = null;
+      }
       rethrow;
     } finally {
       _ref.invalidate(deviceListProvider);

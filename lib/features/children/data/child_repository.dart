@@ -12,6 +12,9 @@ abstract class ChildRepository {
   });
 
   Future<List<Child>> getChildren();
+
+  /// `DELETE /children/:childId` — 자녀 삭제(soft delete, 204).
+  Future<void> deleteChild(int childId);
 }
 
 class ApiChildRepository implements ChildRepository {
@@ -45,6 +48,15 @@ class ApiChildRepository implements ChildRepository {
       return (response.data['data'] as List)
           .map((raw) => Child.fromJson(raw as Map<String, dynamic>))
           .toList();
+    } on DioException catch (e) {
+      throwAsApiException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteChild(int childId) async {
+    try {
+      await _apiClient.dio.delete('/children/$childId');
     } on DioException catch (e) {
       throwAsApiException(e);
     }
