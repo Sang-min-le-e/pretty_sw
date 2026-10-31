@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/notifications/local_notification_service.dart';
+import '../../auth/data/auth_providers.dart';
 import '../../children/data/child_providers.dart';
 import '../../routine/data/routine_providers.dart';
 import '../domain/app_notification.dart';
@@ -45,6 +46,8 @@ class CompletionWatcher with WidgetsBindingObserver {
     if (child == null) return;
     _checking = true;
     try {
+      // 로그아웃했으면(저장된 로그인 세션이 없으면) 서버를 부르지 않는다 — 부르면 401만 난다.
+      if (await _ref.read(authSessionRepositoryProvider).getAccessUuid() == null) return;
       final today = DateTime.now();
       final routines = await _ref.read(routineRepositoryProvider).getCalendar(
             childId: child.childId,

@@ -97,6 +97,57 @@ class _DeviceHeroSection extends ConsumerWidget {
   }
 }
 
+/// 기기 목록을 바텀시트로 보여주고, 고른 기기를 홈에 보여줄 기기로 바꾼다.
+Future<void> _pickDevice(
+  BuildContext context,
+  WidgetRef ref,
+  List<ConnectedDevice> devices,
+  int selected,
+) async {
+  final picked = await showModalBottomSheet<int>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 20),
+          const Text(
+            '기기 선택',
+            style: TextStyle(
+              color: kDeviceOverviewLabelColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < devices.length; i++)
+            ListTile(
+              leading: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: deviceDotColorFor(i),
+                ),
+              ),
+              title: Text('${devices[i].name}의 기기'),
+              trailing: i == selected
+                  ? const Icon(Icons.check, color: kDeviceOverviewBrandBlue)
+                  : null,
+              onTap: () => Navigator.of(sheetContext).pop(i),
+            ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    ),
+  );
+  if (picked != null) ref.read(selectedDeviceIndexProvider.notifier).state = picked;
+}
+
 /// 지금 선택된 기기의 제목/상태/캐러셀 + "기기 상태" 헤더. 기기가 1개
 /// 이상 있을 때만 그려진다([_DeviceHeroSection] 참고).
 class _SelectedDevicePanel extends ConsumerWidget {
@@ -126,7 +177,16 @@ class _SelectedDevicePanel extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 38),
-          child: DeviceTitleRow(deviceOwnerName: device.name),
+          // 기기가 둘 이상일 때만 눌러서 다른 기기를 고를 수 있다.
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: DeviceTitleRow(
+              deviceOwnerName: device.name,
+              onTap: devices.length > 1
+                  ? () => _pickDevice(context, ref, devices, index)
+                  : null,
+            ),
+          ),
         ),
         const SizedBox(height: 4),
         // 온라인 / 연결됨 / 배터리 상태 3줄. 실제 BLE 텔레메트리가 아직
@@ -231,16 +291,19 @@ class _NotificationBellButton extends ConsumerWidget {
                 // 뱃지를 겹쳐 그린다.
                 top: -5,
                 right: -3,
+                // Figma: 13x13 빨간 원. 두 자리 이상이면 원 안에 안 들어가서
+                // 같은 높이의 알약 모양으로 옆으로 늘리고, 100 이상은 "99+"로 줄인다.
                 child: Container(
-                  width: 13,
                   height: 13,
+                  constraints: const BoxConstraints(minWidth: 13),
+                  padding: EdgeInsets.symmetric(horizontal: count > 9 ? 3 : 0),
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE71A1A),
-                    shape: BoxShape.circle,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE71A1A),
+                    borderRadius: BorderRadius.circular(6.5),
                   ),
                   child: Text(
-                    '$count',
+                    count > 99 ? '99+' : '$count',
                     style: const TextStyle(
                       fontSize: 9,
                       color: Colors.white,

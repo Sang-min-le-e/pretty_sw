@@ -45,34 +45,44 @@ BoxDecoration deviceCardDecoration({double radius = 25}) {
   );
 }
 
-/// "OO의 기기" 제목 텍스트 + 옆에 작은 깃발 모양 장식 아이콘.
+/// "OO의 기기" 제목 텍스트. [onTap]이 있으면(기기가 여러 개라 고를 수 있을 때)
+/// 옆에 작은 선택 아이콘이 붙고, 제목을 누르면 [onTap]이 불린다. 없으면 아이콘 없이
+/// 글자만 보인다 — 눌러도 아무 일도 없는 장식이 버튼처럼 보이지 않게 하려는 것.
 class DeviceTitleRow extends StatelessWidget {
-  const DeviceTitleRow({super.key, required this.deviceOwnerName});
+  const DeviceTitleRow({super.key, required this.deviceOwnerName, this.onTap});
 
   /// 기기 주인 이름. 화면마다 다른 기기를 보여줄 수 있어서 파라미터로 받는다
   /// (홈 화면은 지금 로그인한 계정과 연결된 첫 번째 자녀, 기기 상세 화면은
   /// 목록에서 고른 자녀).
   final String deviceOwnerName;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$deviceOwnerName의 기기',
-          style: const TextStyle(
-            color: kDeviceOverviewLabelColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$deviceOwnerName의 기기',
+            style: const TextStyle(
+              color: kDeviceOverviewLabelColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        const SizedBox(
-          width: 7,
-          height: 7,
-          child: AssetIcon('assets/images/home_title_accent.svg'),
-        ),
-      ],
+          if (onTap != null) ...[
+            const SizedBox(width: 4),
+            const SizedBox(
+              width: 7,
+              height: 7,
+              child: AssetIcon('assets/images/home_title_accent.svg'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

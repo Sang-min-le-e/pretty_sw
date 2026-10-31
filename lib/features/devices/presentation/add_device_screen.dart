@@ -213,10 +213,11 @@ class _ScanningStepState extends ConsumerState<_ScanningStep> {
         Center(
           child: PairingGlow(
             color: const Color(0xFF4ABEFF),
-            child: const DeviceAvatar(
-              'assets/images/device_tomo_green.svg',
-              width: 121,
-              height: 163,
+            // Figma 392:1718: 파란 기기 143x149.
+            child: const SizedBox(
+              width: 143,
+              height: 149,
+              child: AssetIcon('assets/images/device_add_blue.svg'),
             ),
           ),
         ),
