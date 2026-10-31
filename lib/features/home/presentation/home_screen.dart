@@ -259,7 +259,7 @@ class _TopBar extends StatelessWidget {
 }
 
 /// 알림 벨 아이콘 + 우측 상단에 겹쳐진 빨간 알림 개수 뱃지.
-/// [notificationCountProvider](안 읽은 알림 수)가 0이면 뱃지 자체를 안 그린다. 뱃지가 벨 아이콘
+/// [notificationCountProvider](지우지 않고 남은 알림 수)가 0이면 뱃지 자체를 안 그린다. 뱃지가 벨 아이콘
 /// 바깥으로 살짝 삐져나오게 그려야 해서 Stack + Positioned를 쓴다(일반
 /// Row/Column으로는 이렇게 "겹치는" 배치를 할 수 없다).
 class _NotificationBellButton extends ConsumerWidget {

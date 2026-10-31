@@ -20,10 +20,13 @@ final notificationListProvider = FutureProvider<List<AppNotification>>((ref) asy
   return list..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 });
 
-/// 홈 화면 벨 아이콘 뱃지에 쓰는 **읽지 않은** 알림 수. 0이면 뱃지 자체를 안 그린다.
+/// 홈 화면 벨 아이콘 뱃지에 쓰는 알림 수. 읽었는지와 상관없이 **사용자가 밀어서
+/// 지우기 전까지** 남아 있는 알림을 전부 센다 — 벨을 눌러 보기만 해서는 뱃지가
+/// 사라지지 않게 하려는 것. 0이면 뱃지 자체를 안 그린다. (`read`는 카드의 "새 알림"
+/// 표시에만 쓴다.)
 final notificationCountProvider = Provider<int>((ref) {
   final list = ref.watch(notificationListProvider).value ?? const [];
-  return list.where((n) => !n.read).length;
+  return list.length;
 });
 
 /// 방금 도착해서 화면 위에 잠깐 띄울(토스트) 알림. 토스트가 3초 뒤 내려가면 다시
