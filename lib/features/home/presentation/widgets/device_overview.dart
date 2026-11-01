@@ -199,11 +199,26 @@ const kDeviceCarouselDisabledColor = Color(0xFFA9A9A9);
 /// inset 값). [width]/[height]에 Figma의 기기 몸통 크기를 그대로 넘기면,
 /// 여백만큼 바깥으로 삐져나오게 그려서 몸통이 정확히 그 크기가 되게 한다.
 class DeviceAvatar extends StatelessWidget {
-  const DeviceAvatar(this.asset, {super.key, required this.width, required this.height});
+  const DeviceAvatar(
+    this.asset, {
+    super.key,
+    required this.width,
+    required this.height,
+    this.bleedX = 0.0585,
+    this.bleedTop = 0.0217,
+    this.bleedBottom = 0.0652,
+  });
 
   final String asset;
   final double width;
   final double height;
+
+  /// 그림자 여백 비율(몸통 크기 대비). 기본값은 68x92로 내보낸 연두/흰색/보라
+  /// SVG 기준이고, 다른 크기로 내보낸 SVG(예: 기기 추가 화면의 파란 기기)는
+  /// 그 Figma 응답의 inset 값을 넘긴다.
+  final double bleedX;
+  final double bleedTop;
+  final double bleedBottom;
 
   @override
   Widget build(BuildContext context) {
@@ -214,10 +229,10 @@ class DeviceAvatar extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            left: -width * 0.0585,
-            right: -width * 0.0585,
-            top: -height * 0.0217,
-            bottom: -height * 0.0652,
+            left: -width * bleedX,
+            right: -width * bleedX,
+            top: -height * bleedTop,
+            bottom: -height * bleedBottom,
             child: AssetIcon(asset),
           ),
         ],
