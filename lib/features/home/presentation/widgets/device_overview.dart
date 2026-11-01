@@ -696,12 +696,18 @@ class CurrentRoutineCard extends ConsumerWidget {
           else
             Row(
               children: [
-                Text(
-                  '${routine.timeLabel.isEmpty ? '' : '${routine.timeLabel} '}${routine.title}',
-                  style: const TextStyle(
-                    color: kDeviceOverviewLabelColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                // 요약 카드라 한 줄로 두고, 이름이 길면 "…"으로 줄여서 오른쪽
+                // "완료 n/m"이 항상 보이게 한다(전체 이름은 루틴 상세에서 본다).
+                Flexible(
+                  child: Text(
+                    '${routine.timeLabel.isEmpty ? '' : '${routine.timeLabel} '}${routine.title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: kDeviceOverviewLabelColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),

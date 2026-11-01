@@ -137,9 +137,12 @@ class _RoutineStepRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(color: Color(0xFF505050), fontSize: 15),
+        // 할 일 이름이 길면 카드 밖으로 나가지 않고 다음 줄로 넘어간다.
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(color: Color(0xFF505050), fontSize: 15),
+          ),
         ),
       ],
     );

@@ -237,12 +237,18 @@ class _ProgressCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 19),
       child: Column(
         children: [
-          Text(
-            routine.title,
-            style: const TextStyle(
-              color: RoutineDetailScreen._labelColor,
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
+          // 이름이 길면 카드 가장자리에 붙지 않게 좌우 여백을 두고 가운데 정렬로
+          // 여러 줄에 걸쳐 보여준다.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              routine.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: RoutineDetailScreen._labelColor,
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           if (routine.timeLabel.isNotEmpty) ...[
